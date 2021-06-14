@@ -15,15 +15,23 @@ def scanDB(path, separation):
 	return db
 
 #-----------get item counts for a dataset---------
-def getDBItems(db):
+def getDBItems(db, basePtn=''):
 	dbItems = {}
-	for trx in db:
-		for item in trx:
-			dbItems[item] = dbItems.get(item, 0) + 1
-	return dbItems
+	newDB = []
+	if basePtn:
+		for trx in db:
+			if basePtn == trx[-1]:
+				newDB.append(trx[:-1])
+				for item in trx[:-1]:
+					dbItems[item] = dbItems.get(item, 0) + 1
+	else:
+		for trx in db:
+			for item in trx:
+				dbItems[item] = dbItems.get(item, 0) + 1
+	return dbItems, newDB
 
 #-----------build an fp-tree-----------
-def buildFPTree(db, dbItems):
+def buildFPTree(db, dbItems, minsup):
 	fpTree = myTree.FPTree()
 	fpTree.createHeaderTable(dbItems, minsup)
 	for trx in db:
@@ -39,7 +47,7 @@ def getPBItems(pb):
 	return pbItems
 
 #-----------build a conditional fp-tree-----------
-def buildCondTree(condPB):
+def buildCondTree(condPB, minsup):
 	condTree = myTree.FPTree()
 	pbItems = getPBItems(condPB)
 	condTree.createHeaderTable(pbItems, minsup)
@@ -48,7 +56,7 @@ def buildCondTree(condPB):
 	return condTree
 
 #-----------mine an fp-tree for a pattern-----------
-def mine(tree, header, basePtn):
+def mine(tree, header, basePtn, minsup):
 	basePtn += header._key + ','
 	patterns = [basePtn]
 	ptr = header._next
@@ -59,19 +67,23 @@ def mine(tree, header, basePtn):
 			condPB.append(ptn)
 		ptr = ptr._next
 	if len(condPB) > 0:
-		condTree = buildCondTree(condPB)
-		patterns += mineAll(condTree, basePtn)
+		condTree = buildCondTree(condPB, minsup)
+		patterns += mineAll(condTree, basePtn, minsup)
 	return patterns
 
 #-----------mine an fp-tree-----------
-def mineAll(tree, basePtn):
+def mineAll(tree, basePtn, minsup):
 	allPatterns = []
 	for header in tree.headerTable.headers():
-		allPatterns += mine(tree, header, basePtn)
+		allPatterns += mine(tree, header, basePtn, minsup)
 	return allPatterns
 
 
-def buildAndMine(db, f_perf=None):
-	fpTree = buildFPTree(db, dbItems)
-	results = mineAll(fpTree, '')
-	return sorted(results)
+def buildAndMine(db, minsup, basePtn=''):
+	dbItems, newDB = getDBItems(db, basePtn)
+	if newDB:
+		fpTree = buildFPTree(newDB, dbItems, minsup)
+	else:
+		fpTree = buildFPTree(db, dbItems, minsup)
+	results = mineAll(fpTree, basePtn+',', minsup)
+	return results
