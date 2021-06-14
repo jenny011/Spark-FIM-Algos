@@ -39,7 +39,7 @@ def main():
 
     #for f in testFiles:
     #for s in support:
-    res = pfp(f"./{database}.txt", support, sc, partition)
+    res = pfp(f"../datasets/{database}.txt", support, sc, partition)
     sc.stop()
     return res
 

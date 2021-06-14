@@ -29,11 +29,10 @@ def groupDependentTrx(trx, itemGidMap):
     return [(k,v) for k, v in GTrxMap.items()]
 
 def fpg(gid, db, minsup, gidItemMap):
-    print(gid, gidItemMap[gid], db, minsup)
     items = gidItemMap[gid]
     res = [item for item in items]
     for item in items:
-        fi = buildAndMine(db, minsup, item)
+        fi = buildAndMine(db, minsup)
         res += fi
     return res
 
@@ -60,8 +59,7 @@ def pfp(inFile, min_sup, sc, partition):
         gid = groupID(i, partition)
         itemGidMap[Flist[i]] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [Flist[i]]
-    print("item-gid:", itemGidMap)
-    print("gid-item:", gidItemMap)
+
 
     # step 4: pfp
     # Mapper – Generating group-dependent transactions
@@ -69,9 +67,12 @@ def pfp(inFile, min_sup, sc, partition):
                         .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                         .groupByKey()\
                         .map(lambda kv: (kv[0], list(kv[1])))
-    print(groupTrans.collect())
     # Reducer – FP-Growth on group-dependent shards
-    localFIs = groupTrans.flatMap(lambda condDB: fpg(condDB[0], condDB[1], minsup, gidItemMap)).collect()
-    print(localFIs)
+    # localFIs = groupTrans.flatMap(lambda condDB: fpg(condDB[0], condDB[1], minsup, gidItemMap)).collect()
+    localFIs = groupTrans.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], minsup)).collect()
 
-    return localFIs
+    # step 5: Aggregation - remove duplicates
+    globalFIs = set(localFIs)
+    print(globalFIs)
+
+    return globalFIs
