@@ -1,4 +1,7 @@
 # Spark-FIM-Algos
 
 ## PFP
-debug: mining result differs with worker no.
+testing
+
+## IncMiningPFP or IncBuildingPFP
+todo
