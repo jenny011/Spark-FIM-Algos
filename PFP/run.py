@@ -5,7 +5,7 @@ from pyspark.sql.types import *
 import os, argparse, time
 import numpy as np
 
-from pfp import pfp
+from main import pfp
 
 memory = '10g'
 pyspark_submit_args = ' --driver-memory ' + memory + ' pyspark-shell'
@@ -25,6 +25,7 @@ def main():
     partition = int(args.partition)
 
     conf = SparkConf().setAppName("PFP")
+    conf.set("spark.default.parallelism", args.partition)
     sc = SparkContext.getOrCreate(conf=conf)
 
     spark = SparkSession(sc)

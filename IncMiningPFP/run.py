@@ -5,7 +5,7 @@ from pyspark.sql.types import *
 import os, argparse, time
 import numpy as np
 
-from incMiningPFP import incMiningPFP
+from main import pfp, incPFP
 
 memory = '10g'
 pyspark_submit_args = ' --driver-memory ' + memory + ' pyspark-shell'
@@ -24,7 +24,8 @@ def main():
     support = int(args.minsup)/100
     partition = int(args.partition)
 
-    conf = SparkConf().setAppName("PFP")
+    conf = SparkConf().setAppName("IncMiningPFP")
+    conf.set("spark.default.parallelism", args.partition)
     sc = SparkContext.getOrCreate(conf=conf)
 
     spark = SparkSession(sc)
@@ -39,7 +40,9 @@ def main():
 
     #for f in testFiles:
     #for s in support:
-    res = incMiningPFP(f"../datasets/{database}.txt", support, sc, partition)
+    dbPath = f"../datasets/{database}.txt"
+    res = pfp(dbPath, support, sc, partition)
+    inc = incPFP(dbPath, support, sc, partition, dbPath)
     sc.stop()
     return res
 

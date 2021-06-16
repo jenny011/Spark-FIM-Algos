@@ -57,37 +57,47 @@ def buildCondTree(condPB, minsup):
 
 #-----------mine an fp-tree for a pattern-----------
 def mine(tree, header, basePtn, minsup):
-        basePtn += header._key + ','
-        patterns = [basePtn]
-        ptr = header._next
-        condPB = []
-        while ptr:
-                ptn = tree.prefix_path(ptr)
-                if ptn:
-                        condPB.append(ptn)
-                ptr = ptr._next
-        if len(condPB) > 0:
-                condTree = buildCondTree(condPB, minsup)
-                patterns += mineAll(condTree, minsup, basePtn)
-        return patterns
+    basePtn += header._key + ','
+    patterns = [basePtn]
+    ptr = header._next
+    condPB = []
+    while ptr:
+            ptn = tree.prefix_path(ptr)
+            if ptn:
+                    condPB.append(ptn)
+            ptr = ptr._next
+    if len(condPB) > 0:
+            condTree = buildCondTree(condPB, minsup)
+            patterns += mineAll(condTree, minsup, basePtn)
+    return patterns
 
 #-----------mine an fp-tree-----------
 def mineAll(tree, minsup, basePtn=''):
-        allPatterns = []
-        for header in tree.headerTable.headers():
-                allPatterns += mine(tree, header, basePtn, minsup)
-        for i in range(len(allPatterns)):
-                tempPtn = sorted(allPatterns[i].rstrip(",").split(","))
-                allPatterns[i] = ",".join(tempPtn)
-        return allPatterns
+    allPatterns = []
+    for header in tree.headerTable.headers():
+            allPatterns += mine(tree, header, basePtn, minsup)
+    for i in range(len(allPatterns)):
+            tempPtn = sorted(allPatterns[i].rstrip(",").split(","))
+            allPatterns[i] = ",".join(tempPtn)
+    return allPatterns
 
 
 def buildAndMine(gid, db, minsup, basePtn=''):
-        dbItems, newDB = getDBItems(db)
-        if newDB:
-                fpTree = buildFPTree(newDB, dbItems, minsup)
-        else:
-                fpTree = buildFPTree(db, dbItems, minsup)
-        results = mineAll(fpTree, minsup, basePtn)
-        print(gid, results)
-        return results
+    dbItems, newDB = getDBItems(db)
+    if newDB:
+            fpTree = buildFPTree(newDB, dbItems, minsup)
+    else:
+            fpTree = buildFPTree(db, dbItems, minsup)
+    results = mineAll(fpTree, minsup, basePtn)
+    print(gid, results)
+    return results
+
+def checkBuildAndMine(IncFlist, gItems, gid, db, minsup, basePtn=''):
+	dontSkip = False
+	for item in gItems:
+		if item in incFlist:
+			dontSkip = True
+			break
+	if dontSkip:
+		return buildAndMine(gid, db, minsup, basePtn='')
+	return []
