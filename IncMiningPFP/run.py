@@ -41,8 +41,9 @@ def main():
     #for f in testFiles:
     #for s in support:
     dbPath = f"../datasets/{database}.txt"
+    incDBPath = "../datasets/inctest.txt"
     res = pfp(dbPath, support, sc, partition)
-    inc = incPFP(dbPath, support, sc, partition, dbPath)
+    inc = incPFP(dbPath, support, sc, partition, incDBPath)
     sc.stop()
     return res
 

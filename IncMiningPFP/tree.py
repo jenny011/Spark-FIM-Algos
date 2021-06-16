@@ -152,6 +152,18 @@ class FPTree(Tree):
         path.reverse()
         return (count, path)
 
+    def upward_branch_traversal(self, node):
+        trx = []
+        count = node._count
+        while node and node != self._root:
+            trx.append(node._key)
+            node._count -= count
+            node = node._parent
+        if not trx:
+            return []
+        trx.reverse()
+        return (count, trx)
+
     def __repr__(self):
         r = ''
         for i in self:

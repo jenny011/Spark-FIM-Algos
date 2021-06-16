@@ -89,15 +89,66 @@ def buildAndMine(gid, db, minsup, basePtn=''):
     else:
             fpTree = buildFPTree(db, dbItems, minsup)
     results = mineAll(fpTree, minsup, basePtn)
-    print(gid, results)
     return results
 
-def checkBuildAndMine(IncFlist, gItems, gid, db, minsup, basePtn=''):
+
+#-----------mine trx-----------
+def mineAllTrx(tree, incFlist):
+	db = []
+	for header in tree.headerTable.reverse_headers():
+		if header._key in incFlist:
+			ptr = header._next
+			while ptr:
+				trx = tree.upward_branch_traversal(ptr)
+				if trx:
+					db.append(trx)
+				ptr = ptr._next
+	return db
+
+
+def getIncDBItems(db, incFlist=[]):
+	dbItems = {}
+	for trx in db:
+		if not incFlist:
+			for item in trx:
+				dbItems[item] = dbItems.get(item, 0) + 1
+		else:
+			for item in trx[1]:
+				dbItems[item] = dbItems.get(item, 0) + int(trx[0])
+	return dbItems
+
+#------
+def constructIncDB(incFlist, newDB):
+    incDBItems = getIncDBItems(newDB)
+    fpTree = buildFPTree(newDB, incDBItems, 0)
+    incDB = mineAllTrx(fpTree, incFlist)
+    return incDB
+
+#------
+def buildIncFPTree(db, dbItems, minsup):
+	fpTree = myTree.FPTree()
+	fpTree.createHeaderTable(dbItems, minsup)
+	for trx in db:
+		fpTree.add(trx[1], int(trx[0]))
+	return fpTree
+
+def buildAndMineIncDB(incFlist, incDB, minsup, basePtn=''):
+    incDBItems = getIncDBItems(incDB, incFlist)
+    fpTree = buildIncFPTree(incDB, incDBItems, minsup)
+    results = mineAll(fpTree, minsup, basePtn)
+    return results
+
+
+def checkBuildAndMine(incFlist, gItems, gid, db, minsup, basePtn=''):
+	# check if the group is affected
 	dontSkip = False
 	for item in gItems:
 		if item in incFlist:
 			dontSkip = True
 			break
+	# if yes, get the group-dependent incDB and mine
 	if dontSkip:
-		return buildAndMine(gid, db, minsup, basePtn='')
+		incDB = constructIncDB(incFlist, db)
+		results = buildAndMineIncDB(incFlist, incDB, minsup, basePtn)
+		return results
 	return []

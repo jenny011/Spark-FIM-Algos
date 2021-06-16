@@ -8,7 +8,7 @@ class Header():
       self._next = link
 
     # def __gt__(self, other):
-    #   return self._count > other._count 
+    #   return self._count > other._count
 
     def __repr__(self):
       # return '({0}: {1})'.format(self._key, self._count)
@@ -23,19 +23,22 @@ class HeaderTable():
 
     # Iterators
     def __iter__(self):
-        for header in self._table:  
+        for header in self._table:
             yield header._key
 
     def headers(self):
         for header in self._table:
             yield header
 
+    def reverse_headers(self):
+        return reversed(self._table)
+
     def keys(self):
-        for header in self.headers():  
+        for header in self.headers():
             yield header._key
 
     # def counts(self):
-    #     for header in self.headers():  
+    #     for header in self.headers():
     #         yield header._count
 
     def insert(self, key):
