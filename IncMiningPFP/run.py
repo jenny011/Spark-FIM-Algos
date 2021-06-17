@@ -42,11 +42,18 @@ def main():
     #for s in support:
     dbPath = f"../datasets/{database}.txt"
     incDBPath = "../datasets/inctest.txt"
-    res = pfp(dbPath, support, sc, partition)
-    inc = incPFP(dbPath, support, sc, partition, incDBPath)
-    inc = incPFP(dbPath, support, sc, partition, incDBPath)
+    resultPath = f"./data/{args.minsup}/{args.partition}/result.json"
+    # prep: read database
+    dbFile = sc.textFile(dbPath)
+    dbSize = dbFile.count()
+    minsup = support * dbSize
+    db = dbFile.map(lambda r: r.split(" "))
+
+    FMap, itemGidMap, gidItemMap = pfp(db, support, sc, partition, minsup, resultPath)
+    db, FMap, itemGidMap, gidItemMap = incPFP(db, support, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap)
+    db, FMap, itemGidMap, gidItemMap = incPFP(db, support, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap)
     sc.stop()
-    return res
+    return
 
 
 if __name__=="__main__":

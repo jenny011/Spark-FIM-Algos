@@ -14,21 +14,19 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 
-def pfp(inFile, min_sup, sc, partition):
-    # prep: read database
-    dbFile = sc.textFile(inFile)
-    dbSize = dbFile.count()
-    minsup = min_sup * dbSize
-    db = dbFile.map(lambda r: r.split(" "))
-
+def pfp(db, min_sup, sc, partition, minsup, resultPath):
     # step 1 & 2: sharding and parallel counting
     FlistRDD = db.flatMap(lambda trx: [(k,1) for k in trx])\
                     .reduceByKey(add)\
                     .filter(lambda kv: kv[1] >= minsup)\
                     .sortBy(lambda kv: kv[1], False)
 
-    #'hdfs://master.hadoop:7077/data/'
-    writeFlistToJSON(FlistRDD.collect(), './data/flist.json')
+    # 'hdfs://master.hadoop:7077/data/'
+    FMap = {}
+    for kv in FlistRDD.collect():
+        FMap[kv[0]] = kv[1]
+    # writeFMapToJSON(FMap, './data/flist.json')
+
     Flist = FlistRDD.map(lambda kv: kv[0])\
                     .collect()
 
@@ -54,27 +52,21 @@ def pfp(inFile, min_sup, sc, partition):
     # step 5: Aggregation - remove duplicates
     globalFIs = set(localFIs.collect())
     print("result>>>", globalFIs)
-    with open("./data/results.json", 'w') as f:
+    with open(resultPath, 'w') as f:
         json.dump(list(globalFIs), f)
 
-    return globalFIs
+    return FMap, itemGidMap, gidItemMap
 
 
-def incPFP(dbPath, min_sup, sc, partition, incDBPath):
-    # read D
-    dbFile = sc.textFile(dbPath)
-    dbSize = dbFile.count()
-    db = dbFile.map(lambda r: r.split(" "))
-    minsup = min_sup * dbSize
-
-    # read deltaD
+def incPFP(db, min_sup, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap):
+    # prep: read deltaD
     deltaDBFile = sc.textFile(incDBPath)
     deltaDBSize = deltaDBFile.count()
     deltaDB = deltaDBFile.map(lambda r: r.split(" "))
 
     newDB = sc.union([db, deltaDB])
 
-    # Inc-Flist
+    # step 1: Inc-Flist
     incFlistRDD = deltaDB.flatMap(lambda trx: [(k,1) for k in trx])\
                     .reduceByKey(add)\
                     .filter(lambda kv: kv[1] >= min_sup * deltaDBSize)\
@@ -85,21 +77,19 @@ def incPFP(dbPath, min_sup, sc, partition, incDBPath):
                     .collect()
 
     # merge Inc-Flist and Flist
-    FMap = readFlistFromJSON('./data/flist.json')
+    # FMap = readFlistFromJSON('./data/flist.json')
     for kv in incFlistRDD.collect():
         if kv[0] in FMap:
             FMap[kv[0]] = FMap[kv[0]] + kv[1]
         else:
             FMap[kv[0]] = kv[1]
 
-    writeFMapToJSON(FMap, './data/flist.json')
+    # writeFMapToJSON(FMap, './data/flist.json')
     print("newFlist>>>", FMap)
     Flist = list(FMap.keys())
 
-    # shard new DB
-    itemGidMap = {}
-    gidItemMap = {}
-    for item in Flist:
+    # step 2: shard new DB
+    for item in incFlist:
         gid = groupID(int(item), partition)
         itemGidMap[item] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [item]
@@ -109,18 +99,17 @@ def incPFP(dbPath, min_sup, sc, partition, incDBPath):
                     .groupByKey()\
                     .map(lambda kv: (kv[0], list(kv[1])))
 
-    # mine new FP-tree using Inc-Flist
+    # step 3: mine new FP-tree using Inc-Flist
     localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], minsup))
-
     globalFIs = set(localFIs.collect())
-    print("newResult>>>",globalFIs)
 
-    with open("./data/results.json", 'r') as f:
+    # load old results, merge, save
+    with open(resultPath, 'r') as f:
         oldFIs = json.load(f)
 
     mergedFIs = globalFIs.union(oldFIs)
-    print("FinalResult>>>",mergedFIs)
-    with open("./data/results.json", 'w') as f:
+    print("mergedResult>>>",mergedFIs)
+    with open(resultPath, 'w') as f:
         json.dump(list(mergedFIs), f)
 
-    return mergedFIs
+    return newDB, FMap, itemGidMap, gidItemMap
