@@ -44,6 +44,7 @@ def main():
     incDBPath = "../datasets/inctest.txt"
     res = pfp(dbPath, support, sc, partition)
     inc = incPFP(dbPath, support, sc, partition, incDBPath)
+    inc = incPFP(dbPath, support, sc, partition, incDBPath)
     sc.stop()
     return res
 

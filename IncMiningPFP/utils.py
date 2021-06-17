@@ -53,6 +53,10 @@ def fpg(gid, db, minsup, gidItemMap):
 #     Flist = df.set_index('item')['count'].to_dict()
 #     return Flist
 
+def writeFMapToJSON(FMap, fpath):
+    with open(fpath, 'w') as f:
+        json.dump(FMap, f)
+
 def writeFlistToJSON(Flist, fpath):
     Fdict = {}
     for kv in Flist:

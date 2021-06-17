@@ -92,7 +92,7 @@ def incPFP(dbPath, min_sup, sc, partition, incDBPath):
         else:
             FMap[kv[0]] = kv[1]
 
-    ### TODO writeFlistDictToJSON(Flist, './data/flist.json')
+    writeFMapToJSON(FMap, './data/flist.json')
     print("newFlist>>>", FMap)
     Flist = list(FMap.keys())
 
@@ -113,5 +113,14 @@ def incPFP(dbPath, min_sup, sc, partition, incDBPath):
     localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], minsup))
 
     globalFIs = set(localFIs.collect())
-    print("result>>>",globalFIs)
-    return globalFIs
+    print("newResult>>>",globalFIs)
+
+    with open("./data/results.json", 'r') as f:
+        oldFIs = json.load(f)
+
+    mergedFIs = globalFIs.union(oldFIs)
+    print("FinalResult>>>",mergedFIs)
+    with open("./data/results.json", 'w') as f:
+        json.dump(list(mergedFIs), f)
+
+    return mergedFIs
