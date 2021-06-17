@@ -31,7 +31,7 @@ if [ -z $PARTITION ]; then
     PARTITION="2"
 fi
 
-BASEDIR="/root/IncMiningPFP"
+BASEDIR="/root/PFP"
 
 DATADIR="$BASEDIR/data"
 if [ ! -d $DATADIR ]; then

@@ -12,11 +12,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 
-def pfp(inFile, min_sup, sc, partition):
+def pfp(dbPath, min_sup, sc, partition):
     # prep: read database
-    dbFile = sc.textFile(inFile)
-    numTrans = dbFile.count()
-    minsup = min_sup * numTrans
+    dbFile = sc.textFile(dbPath)
+    dbSize = dbFile.count()
+    minsup = min_sup * dbSize
     db = dbFile.map(lambda r: r.split(" "))
 
     # step 1 & 2: sharding and parallel counting

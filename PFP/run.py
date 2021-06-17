@@ -2,7 +2,7 @@ from pyspark import RDD, SparkConf, SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
-import os, argparse, time
+import os, argparse, time, json
 import numpy as np
 
 from main import pfp
@@ -40,9 +40,14 @@ def main():
 
     #for f in testFiles:
     #for s in support:
-    res = pfp(f"../datasets/{database}.txt", support, sc, partition)
+    dbPath = f"../datasets/{database}.txt"
+    resultPath = f"./data/{args.minsup}/{args.partition}/result.json"
+
+    res = pfp(dbPath, support, sc, partition)
+    with open(resultPath, 'w') as f:
+        json.dump(list(res), f)
     sc.stop()
-    return res
+    return
 
 
 if __name__=="__main__":
