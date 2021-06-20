@@ -5,16 +5,17 @@ from utils import *
 
 
 class GenMax:
-    def __init__(self, minsup, db):
-        self.minsup = minsup
+    def __init__(self, min_sup, db):
+        self.min_sup = min_sup
         ##### OPTIMIZE save dbSize instead of db
         self.db = db
+        self.minsup = None
         self.mfis = []
         self.vdb = {}
         self.flist = []
 
-    def get_tlist(self, itemset):
-        if ",".join(itemset) not in self.vdb:
+    def get_tlist(self, itemset, itemsetStr):
+        if itemsetStr not in self.vdb:
             if len(itemset) == 1 or itemset[0] not in self.vdb:
                 self.vdb[itemset[0]] = set()
             for i in range(1, len(itemset)):
@@ -37,7 +38,7 @@ class GenMax:
         return -1
 
     def countItemsetVertical(self, itemset, itemsetStr, p):
-        self.get_tlist(itemset)
+        self.get_tlist(itemset, itemsetStr)
         new_tlist = self.vdb[itemsetStr].intersection(self.vdb[p])
 
         newItemsetStr = ",".join(sorted(itemset + [p]))
@@ -58,6 +59,7 @@ class GenMax:
         return combineSet
 
     def prep(self):
+        self.minsup = self.min_sup * len(self.db)
         self.transposeDB()
         self.getFlist()
 
@@ -104,16 +106,16 @@ class GenMax:
 
 
 class ZigZag(GenMax):
-    def __init__(self, minsup, db, gid):
-        super().__init__(minsup, db)
+    def __init__(self, min_sup, db, gid):
+        super().__init__(min_sup, db)
         self.gid = gid
         self.inc_split = None
         self.incDB = []
         self.vIncDB = {}
         self.retained = {}
 
-    def get_tlistInc(self, itemset):
-        if ",".join(itemset) not in self.vIncDB:
+    def get_tlistInc(self, itemset, itemsetStr):
+        if itemsetStr not in self.vIncDB:
             if len(itemset) == 1 or itemset[0] not in self.vIncDB:
                 self.vIncDB[itemset[0]] = set()
             for i in range(1, len(itemset)):
@@ -125,14 +127,15 @@ class ZigZag(GenMax):
     def support(self, itemsetStr, inc=False):
         itemset = itemsetStr.split(",")
         if inc:
-            self.get_tlistInc(itemset)
+            self.get_tlistInc(itemset, itemsetStr)
             return len(self.vIncDB[itemsetStr])
         else:
-            self.get_tlist(itemset)
+            self.get_tlist(itemset, itemsetStr)
             return len(self.vdb[itemsetStr])
 
     def mergeDB(self):
         self.db = self.db + self.incDB
+        self.minsup = self.min_sup * len(self.db)
         self.transposeDB()
         self.getFlist()
         # for k, v in self.vIncDB.items():
@@ -149,7 +152,7 @@ class ZigZag(GenMax):
 
     def countItemsetVerticalInc(self, itemset, itemsetStr, p, newItemsetStr):
         if p in self.vIncDB:
-            self.get_tlistInc(itemset)
+            self.get_tlistInc(itemset, itemsetStr)
             new_tlist = self.vIncDB[itemsetStr].intersection(self.vIncDB[p])
 
             self.vIncDB[newItemsetStr] = new_tlist

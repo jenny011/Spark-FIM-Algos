@@ -14,7 +14,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 def local_zigzag(db_id, db, min_sup):
-    zigzag_instance = ZigZag(min_sup * len(db), db, db_id)
+    zigzag_instance = ZigZag(min_sup, db, db_id)
     zigzag_instance.prep()
     zigzag_instance.run()
     zigzag_instance.updateRetainedFIs()

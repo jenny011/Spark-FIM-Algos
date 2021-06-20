@@ -19,8 +19,8 @@ parser.add_argument('--dbdir', '-b', help='database directory', required=True)
 parser.add_argument('--database', '-d', help='database name', required=True)
 parser.add_argument('--min_sup', '-m', type=float, help='min support percentage', required=True)
 parser.add_argument('--partition', '-p', help='num of workers', required=True)
-parser.add_argument('--inc_number', '-i', type=int, help='number of increments', required=False, default=1)
-parser.add_argument('--granularity', '-g', type=int, help='size of increment', required=False, default=2)
+parser.add_argument('--inc_number', '-i', type=int, help='number of increments', required=False, default=0)
+parser.add_argument('--granularity', '-g', type=int, help='size of increment', required=False, default=0)
 args = parser.parse_args()
 
 
@@ -73,7 +73,7 @@ def main():
 
     for i in range(inc_number):
         incDB = db[inc_split + granularity * i : inc_split + granularity * (i+1)]
-        local_zigzags = zigzagInc(incDB, granularity, min_sup, sc, partition, incDBPath, minsup, local_zigzags)
+        local_zigzags = zigzagInc(incDB, granularity, min_sup, sc, partition, minsup, local_zigzags)
     sc.stop()
     return
 
