@@ -5,13 +5,13 @@ from utils import *
 
 
 class GenMax:
-    def __init__(self, min_sup, db):
+    def __init__(self, min_sup, dbSize, vdb):
         self.min_sup = min_sup
         ##### OPTIMIZE save dbSize instead of db
-        self.db = db
+        self.dbSize = dbSize
+        self.vdb = vdb
         self.minsup = None
         self.mfis = []
-        self.vdb = {}
         self.flist = []
 
     def get_tlist(self, itemset, itemsetStr):
@@ -24,11 +24,8 @@ class GenMax:
                 if next not in self.vdb:
                     self.vdb[next] = self.vdb[temp].intersection(self.vdb[itemset[i]])
 
-    def transposeDB(self):
-        self.vdb = transposeDB(self.db)
-
     def getFlist(self):
-        freqDBItems = getFreqDBItems(self.db, self.minsup)
+        freqDBItems = getFreqDBItems(self.vdb, self.minsup)
         self.flist = ascOrderedList(freqDBItems)
 
     def isNotSubSetPosition(self, itemset, mfi):
@@ -58,9 +55,8 @@ class GenMax:
         combineSet = ascOrderedList(combineSetDict)
         return combineSet
 
-    def prep(self):
-        self.minsup = self.min_sup * len(self.db)
-        self.transposeDB()
+    def prepStates(self):
+        self.minsup = self.min_sup * self.dbSize
         self.getFlist()
 
     def run(self):
@@ -106,11 +102,9 @@ class GenMax:
 
 
 class ZigZag(GenMax):
-    def __init__(self, min_sup, db, gid):
-        super().__init__(min_sup, db)
+    def __init__(self, min_sup, dbSize, vdb, gid):
+        super().__init__(min_sup, dbSize, vdb)
         self.gid = gid
-        self.inc_split = None
-        self.incDB = []
         self.vIncDB = {}
         self.retained = {}
 
@@ -133,22 +127,19 @@ class ZigZag(GenMax):
             self.get_tlist(itemset, itemsetStr)
             return len(self.vdb[itemsetStr])
 
-    def mergeDB(self):
-        self.db = self.db + self.incDB
-        self.minsup = self.min_sup * len(self.db)
-        self.transposeDB()
+    def updateStates(self, vIncDB, incDBSize):
+        temp = {}
+        for k in self.vdb.keys():
+            if "," not in k:
+                temp[k] = self.vdb[k]
+        self.vdb = temp
+        self.vIncDB = vIncDB
+        self.dbSize = self.dbSize + incDBSize
+        self.minsup = self.min_sup * self.dbSize
+        for k, v in self.vIncDB.items():
+            self.vdb[k] = self.vdb.get(k,set()).union(v)
         self.getFlist()
-        # for k, v in self.vIncDB.items():
-        #     self.vdb[k] = self.vdb.get(k,set()).union(v)
 
-    def transposeDBInc(self):
-        self.vIncDB = transposeDB(self.incDB, self.inc_split)
-
-    def update_incDB(self, incDB, inc_split):
-        self.incDB = incDB
-        self.inc_split = inc_split
-        self.transposeDBInc()
-        self.mergeDB()
 
     def countItemsetVerticalInc(self, itemset, itemsetStr, p, newItemsetStr):
         if p in self.vIncDB:
@@ -173,7 +164,6 @@ class ZigZag(GenMax):
                 count = self.countItemsetVertical(sortedItemset, itemsetStr, p)
 
             if count >= self.minsup:
-                ### DEBUG: self.support(itemsetStr) == 0
                 combineSetDict[p] = count / (self.support(itemsetStr) * len(self.vdb[p]))
         combineSet = ascOrderedList(combineSetDict)
         return combineSet

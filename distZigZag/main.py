@@ -14,8 +14,8 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 def local_zigzag(db_id, db, min_sup):
-    zigzag_instance = ZigZag(min_sup, db, db_id)
-    zigzag_instance.prep()
+    zigzag_instance = ZigZag(min_sup, len(db), transposeDB(db), db_id)
+    zigzag_instance.prepStates()
     zigzag_instance.run()
     zigzag_instance.updateRetainedFIs()
     return zigzag_instance
@@ -60,7 +60,8 @@ def zigzag(db, dbSize, min_sup, sc, partition, minsup):
 
 
 def local_zigzagInc(zigzag_instance, incDB):
-    zigzag_instance.update_incDB(incDB, len(zigzag_instance.db))
+    vIncDB = transposeDB(incDB, zigzag_instance.dbSize)
+    zigzag_instance.updateStates(vIncDB, len(incDB))
     zigzag_instance.runInc()
     zigzag_instance.updateRetainedFIs()
     return zigzag_instance
@@ -88,9 +89,6 @@ def zigzagInc(db, dbSize, min_sup, sc, partition, minsup, local_zigzags):
                 .flatMap(lambda zigzag_instance: zigzag_instance.all_powersets(all_localMFIs))\
                 .reduceByKey(lambda a, b: a + b)
     # print("local_fis partition number:", local_fis.getNumPartitions())
-    # local_fis = local_zigzags\
-    #         .flatMap(lambda zigzag_instance: dictToList(zigzag_instance.retained))\
-    #         .reduceByKey(lambda a, b: a + b)
 
     # step 5: filter global fis
     global_fis = local_fis.filter(lambda kv: kv[1] >= minsup)

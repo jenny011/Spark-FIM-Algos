@@ -77,12 +77,12 @@ def getDBItems(db):
 			dbItems[item] = dbItems.get(item, 0) + 1
 	return dbItems
 
-def getFreqDBItems(db, minsup):
-    dbItems = getDBItems(db)
+def getFreqDBItems(vdb, minsup):
     ret = {}
-    for k, v in dbItems.items():
-        if v >= minsup:
-            ret[k] = v
+    for k, v in vdb.items():
+        sup = len(v)
+        if sup >= minsup:
+            ret[k] = sup
     return ret
 
 
