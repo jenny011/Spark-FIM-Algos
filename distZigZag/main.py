@@ -44,13 +44,13 @@ def zigzag(db, dbSize, min_sup, sc, partition, minsup):
     # print("localMIFs>", all_localMFIs)
 
     # step 4: generate local fis
-    # local_fis = local_zigzags\
-    #             .flatMap(lambda zigzag_instance: zigzag_instance.all_powersets(all_localMFIs))\
-    #             .reduceByKey(lambda a, b: a + b)
-    # print("local_fis partition number:", local_fis.getNumPartitions())
     local_fis = local_zigzags\
-            .flatMap(lambda zigzag_instance: dictToList(zigzag_instance.retained))\
-            .reduceByKey(lambda a, b: a + b)
+                .flatMap(lambda zigzag_instance: zigzag_instance.all_powersets(all_localMFIs))\
+                .reduceByKey(lambda a, b: a + b)
+    # print("local_fis partition number:", local_fis.getNumPartitions())
+    # local_fis = local_zigzags\
+    #         .flatMap(lambda zigzag_instance: dictToList(zigzag_instance.retained))\
+    #         .reduceByKey(lambda a, b: a + b)
 
     # step 5: filter global fis
     global_fis = local_fis.filter(lambda kv: kv[1] >= minsup)
@@ -84,17 +84,15 @@ def zigzagInc(db, dbSize, min_sup, sc, partition, minsup, local_zigzags):
     # print("localMIFs>", all_localMFIs)
 
     # step 4: generate local fis
-    # local_fis = local_zigzags\
-    #             .flatMap(lambda zigzag_instance: zigzag_instance.all_powersets(all_localMFIs))\
-    #             .reduceByKey(lambda a, b: a + b)
-    # print("local_fis partition number:", local_fis.getNumPartitions())
     local_fis = local_zigzags\
-            .flatMap(lambda zigzag_instance: dictToList(zigzag_instance.retained))\
-            .reduceByKey(lambda a, b: a + b)
+                .flatMap(lambda zigzag_instance: zigzag_instance.all_powersets(all_localMFIs))\
+                .reduceByKey(lambda a, b: a + b)
+    # print("local_fis partition number:", local_fis.getNumPartitions())
+    # local_fis = local_zigzags\
+    #         .flatMap(lambda zigzag_instance: dictToList(zigzag_instance.retained))\
+    #         .reduceByKey(lambda a, b: a + b)
 
     # step 5: filter global fis
     global_fis = local_fis.filter(lambda kv: kv[1] >= minsup)
     print("global FIs>>>", global_fis.collect())
     return local_zigzags
-
-    return
