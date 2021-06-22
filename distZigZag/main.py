@@ -23,7 +23,7 @@ def local_zigzag(db_id, db, min_sup):
 
 def zigzag(db, dbSize, min_sup, sc, partition, minsup):
     # step 1: split dataset ???? Use Grouping ????
-    # WARN TaskSetManager: Stage 2 contains a task of very large size (4178 KB). The maximum recommended task size is 100 KB.
+    # ???? WARN TaskSetManager: Stage 2 contains a task of very large size (4178 KB). The maximum recommended task size is 100 KB.
     partition_size = math.ceil(dbSize / partition)
     dbGroupMap = [(i, db[ i * partition_size : min( (i+1) * partition_size, dbSize )]) for i in range(partition)]
     dbGroup = sc.parallelize(dbGroupMap)
