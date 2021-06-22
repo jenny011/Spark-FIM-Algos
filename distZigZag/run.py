@@ -38,7 +38,7 @@ def main():
     minsup = min_sup * dbSize
 
     #dbPath = get_dbPath(dbdir, database)
-    resultPath = f"./data/{support}/{partition}/result.json"
+    resultPath = f"./data/{database}_{support}_{partition}_{interval}/result.json"
 
 
     # --------------------- spark setup ---------------------
