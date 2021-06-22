@@ -50,20 +50,26 @@ def main():
     #for s in support:
     # dbPath = f"../datasets/{database}.txt"
     # resultPath = f"./data/{args.minsup}/{args.partition}/result.json"
+    result = None
 
     inc_number = 0
     dbPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
     res, db, flist = pfp(dbPath, min_sup, sc, partition, minsup)
+    result = res
+    print(result)
 
     inc_number += 1
     incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
     while os.path.isfile(incDBPath):
         res, db, flist = pfp(incDBPath, min_sup, sc, partition, minsup, db, flist)
+        if res:
+            result = res
+        print(result)
         inc_number += 1
         incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
 
     with open(resultPath, 'w') as f:
-        json.dump(list(res), f)
+        json.dump(list(results), f)
     sc.stop()
     return
 

@@ -18,6 +18,7 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
     dbSize = dbFile.count()
     db = dbFile.map(lambda r: r.split(" "))
 
+    # inc
     if oldDB:
         db = sc.union([db, oldDB])
 
@@ -30,7 +31,9 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
                     .collect()
     print("Flist>>>", Flist)
 
-    #
+    # inc
+    if sorted(Flist) == sorted(oldFlist):
+        return None, db, Flist
 
     # step 3: Grouping items
     itemGidMap = {}
@@ -53,6 +56,5 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
 
     # step 5: Aggregation - remove duplicates
     globalFIs = set(localFIs.collect())
-    print("result>>>", globalFIs)
-
-    return db, globalFIs
+    # print("result>>>", globalFIs)
+    return globalFIs, db, Flist
