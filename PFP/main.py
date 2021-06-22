@@ -12,12 +12,14 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 
-def pfp(dbPath, min_sup, sc, partition):
+def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
     # prep: read database
     dbFile = sc.textFile(dbPath)
     dbSize = dbFile.count()
-    minsup = min_sup * dbSize
     db = dbFile.map(lambda r: r.split(" "))
+
+    if oldDB:
+        db = sc.union([db, oldDB])
 
     # step 1 & 2: sharding and parallel counting
     Flist = db.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -27,6 +29,8 @@ def pfp(dbPath, min_sup, sc, partition):
                     .map(lambda kv: kv[0])\
                     .collect()
     print("Flist>>>", Flist)
+
+    #
 
     # step 3: Grouping items
     itemGidMap = {}
@@ -51,4 +55,4 @@ def pfp(dbPath, min_sup, sc, partition):
     globalFIs = set(localFIs.collect())
     print("result>>>", globalFIs)
 
-    return globalFIs
+    return db, globalFIs

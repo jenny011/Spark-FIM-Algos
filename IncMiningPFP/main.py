@@ -14,19 +14,22 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 
-def pfp(db, min_sup, sc, partition, minsup, resultPath):
+def pfp(dbPath, min_sup, sc, partition, minsup, resultPath):
+    # prep: read database
+    dbFile = sc.textFile(dbPath)
+    dbSize = dbFile.count()
+    db = dbFile.map(lambda r: r.split(" "))
+
     # step 1 & 2: sharding and parallel counting
     FlistRDD = db.flatMap(lambda trx: [(k,1) for k in trx])\
                     .reduceByKey(add)\
-                    .filter(lambda kv: kv[1] >= minsup)\
+                    .filter(lambda kv: kv[1] >= min_sup * dbSize)\
                     .sortBy(lambda kv: kv[1], False)
-
     # 'hdfs://master.hadoop:7077/data/'
     FMap = {}
     for kv in FlistRDD.collect():
         FMap[kv[0]] = kv[1]
     # writeFMapToJSON(FMap, './data/flist.json')
-
     Flist = FlistRDD.map(lambda kv: kv[0])\
                     .collect()
 
@@ -55,7 +58,7 @@ def pfp(db, min_sup, sc, partition, minsup, resultPath):
     with open(resultPath, 'w') as f:
         json.dump(list(globalFIs), f)
 
-    return FMap, itemGidMap, gidItemMap
+    return db, FMap, itemGidMap, gidItemMap
 
 
 def incPFP(db, min_sup, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap):
@@ -71,8 +74,7 @@ def incPFP(db, min_sup, sc, partition, incDBPath, minsup, resultPath, FMap, item
                     .reduceByKey(add)\
                     .filter(lambda kv: kv[1] >= min_sup * deltaDBSize)\
                     .sortBy(lambda kv: kv[1], False)
-    print("incFlist>>>", incFlistRDD.collect())
-
+    # print("incFlist>>>", incFlistRDD.collect())
     incFlist = incFlistRDD.map(lambda kv: kv[0])\
                     .collect()
 
@@ -85,7 +87,7 @@ def incPFP(db, min_sup, sc, partition, incDBPath, minsup, resultPath, FMap, item
             FMap[kv[0]] = kv[1]
 
     # writeFMapToJSON(FMap, './data/flist.json')
-    print("newFlist>>>", FMap)
+    # print("newFlist>>>", FMap)
     Flist = list(FMap.keys())
 
     # step 2: shard new DB

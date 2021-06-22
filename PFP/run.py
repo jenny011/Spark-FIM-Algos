@@ -12,17 +12,25 @@ pyspark_submit_args = ' --driver-memory ' + memory + ' pyspark-shell'
 os.environ["PYSPARK_SUBMIT_ARGS"] = pyspark_submit_args
 os.environ["PYTHONHASHSEED"]=str(232)
 
-parser = argparse.ArgumentParser(description='argparse')
-parser.add_argument('--database', '-d', help='database name', required=True)
-parser.add_argument('--minsup', '-m', help='min support percentage', required=True)
-parser.add_argument('--partition', '-p', help='num of workers', required=True)
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(description='argparse')
+# parser.add_argument('--database', '-d', help='database name', required=True)
+# parser.add_argument('--minsup', '-m', help='min support percentage', required=True)
+# parser.add_argument('--partition', '-p', help='num of workers', required=True)
+# args = parser.parse_args()
 
 
 def main():
-    database = args.database
-    support = int(args.minsup)/100
-    partition = int(args.partition)
+    dbdir = "./incdatasets"
+    database = "kosarak"
+    support = 40
+    min_sup = support/100
+    partition = 3
+    interval = 40000
+
+    dbSize = countDB(dbdir, database, interval)
+    minsup = min_sup * dbSize
+
+    resultPath = f"./data/{support}/{partition}/result.json"
 
     conf = SparkConf().setAppName("PFP")
     conf.set("spark.default.parallelism", args.partition)
@@ -40,10 +48,20 @@ def main():
 
     #for f in testFiles:
     #for s in support:
-    dbPath = f"../datasets/{database}.txt"
-    resultPath = f"./data/{args.minsup}/{args.partition}/result.json"
+    # dbPath = f"../datasets/{database}.txt"
+    # resultPath = f"./data/{args.minsup}/{args.partition}/result.json"
 
-    res = pfp(dbPath, support, sc, partition)
+    inc_number = 0
+    dbPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
+    res, db, flist = pfp(dbPath, min_sup, sc, partition, minsup)
+
+    inc_number += 1
+    incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
+    while os.path.isfile(incDBPath):
+        res, db, flist = pfp(incDBPath, min_sup, sc, partition, minsup, db, flist)
+        inc_number += 1
+        incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
+
     with open(resultPath, 'w') as f:
         json.dump(list(res), f)
     sc.stop()

@@ -12,20 +12,28 @@ pyspark_submit_args = ' --driver-memory ' + memory + ' pyspark-shell'
 os.environ["PYSPARK_SUBMIT_ARGS"] = pyspark_submit_args
 os.environ["PYTHONHASHSEED"]=str(232)
 
-parser = argparse.ArgumentParser(description='argparse')
-parser.add_argument('--database', '-d', help='database name', required=True)
-parser.add_argument('--minsup', '-m', help='min support percentage', required=True)
-parser.add_argument('--partition', '-p', help='num of workers', required=True)
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(description='argparse')
+# parser.add_argument('--database', '-d', help='database name', required=True)
+# parser.add_argument('--minsup', '-m', help='min support percentage', required=True)
+# parser.add_argument('--partition', '-p', help='num of workers', required=True)
+# args = parser.parse_args()
 
 
 def main():
-    database = args.database
-    support = int(args.minsup)/100
-    partition = int(args.partition)
+    dbdir = "./incdatasets"
+    database = "kosarak"
+    support = 40
+    min_sup = support/100
+    partition = 3
+    interval = 40000
+
+    dbSize = countDB(dbdir, database, interval)
+    minsup = min_sup * dbSize
+
+    resultPath = f"./data/{support}/{partition}/result.json"
 
     conf = SparkConf().setAppName("IncMiningPFP")
-    conf.set("spark.default.parallelism", args.partition)
+    conf.set("spark.default.parallelism", str(partition))
     sc = SparkContext.getOrCreate(conf=conf)
 
     spark = SparkSession(sc)
@@ -40,18 +48,19 @@ def main():
 
     #for f in testFiles:
     #for s in support:
-    dbPath = f"../datasets/{database}.txt"
-    incDBPath = "../datasets/inctest.txt"
-    resultPath = f"./data/{args.minsup}/{args.partition}/result.json"
-    # prep: read database
-    dbFile = sc.textFile(dbPath)
-    dbSize = dbFile.count()
-    minsup = support * dbSize
-    db = dbFile.map(lambda r: r.split(" "))
+    # dbPath = f"../datasets/{database}.txt"
 
-    FMap, itemGidMap, gidItemMap = pfp(db, support, sc, partition, minsup, resultPath)
-    db, FMap, itemGidMap, gidItemMap = incPFP(db, support, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap)
-    db, FMap, itemGidMap, gidItemMap = incPFP(db, support, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap)
+
+    inc_number = 0
+    dbPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
+    db, FMap, itemGidMap, gidItemMap = pfp(dbPath, min_sup, sc, partition, minsup, resultPath)
+
+    inc_number += 1
+    incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
+    while os.path.isfile(incDBPath):
+        db, FMap, itemGidMap, gidItemMap = incPFP(db, min_sup, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap)
+        inc_number += 1
+        incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
     sc.stop()
     return
 

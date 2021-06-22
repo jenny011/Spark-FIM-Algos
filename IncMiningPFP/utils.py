@@ -6,6 +6,17 @@ import json
 from fpGrowth import buildAndMine
 import threading
 
+def countDB(dbdir, database, interval):
+    dbSize = 0
+    expDBdir = os.path.join(dbdir, f"interval_{database}_{interval}")
+    for filename in os.listdir(expDBdir):
+        if filename.endswith(".txt"):
+            with open(os.path.join(expDBdir, filename), 'r') as f:
+                for line in f:
+                    if line:
+                        dbSize += 1
+    return dbSize
+
 def scanDB(fpath, delimiter):
     db = []
     with open(fpath,'r') as f:
