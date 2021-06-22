@@ -6,6 +6,7 @@ import os, argparse, time
 import numpy as np
 
 from main import pfp, incPFP
+from utils import countDB
 
 memory = '10g'
 pyspark_submit_args = ' --driver-memory ' + memory + ' pyspark-shell'
@@ -20,8 +21,8 @@ os.environ["PYTHONHASHSEED"]=str(232)
 
 
 def main():
-    dbdir = "./incdatasets"
-    database = "kosarak"
+    dbdir = "../incdatasets"
+    database = "retail"
     support = 40
     min_sup = support/100
     partition = 3

@@ -6,7 +6,7 @@ import os, argparse, time
 import numpy as np
 
 from algo import *
-from utils import *
+from utils import countDB
 from main import zigzag, zigzagInc
 
 memory = '10g'
@@ -27,8 +27,8 @@ os.environ["PYTHONHASHSEED"]=str(232)
 def main():
     # --------------------- parameters ---------------------
     # --------------------- parameters ---------------------
-    dbdir = "./incdatasets"
-    database = "kosarak"
+    dbdir = "../incdatasets"
+    database = "retail"
     support = 40
     min_sup = support/100
     partition = 3
@@ -44,7 +44,7 @@ def main():
     # --------------------- spark setup ---------------------
     # --------------------- spark setup ---------------------
     conf = SparkConf().setAppName("IncMiningPFP")
-    conf.set("spark.default.parallelism", args.partition)
+    conf.set("spark.default.parallelism", str(partition))
     sc = SparkContext.getOrCreate(conf=conf)
 
     spark = SparkSession(sc)

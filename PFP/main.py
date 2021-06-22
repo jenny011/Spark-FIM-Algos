@@ -32,7 +32,7 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
     print("Flist>>>", Flist)
 
     # inc
-    if sorted(Flist) == sorted(oldFlist):
+    if oldFlist is not None and sorted(Flist) == sorted(oldFlist):
         return None, db, Flist
 
     # step 3: Grouping items
