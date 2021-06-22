@@ -32,7 +32,7 @@ def main():
     dbSize = countDB(dbdir, database, interval)
     minsup = min_sup * dbSize
 
-    resultPath = f"./data/{support}/{partition}/result.json"
+    resultPath = f"./data/{database}_{support}_{partition}_{interval}/result.json"
 
     conf = SparkConf().setAppName("PFP")
     conf.set("spark.default.parallelism", str(partition))
