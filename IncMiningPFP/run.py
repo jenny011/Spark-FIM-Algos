@@ -27,10 +27,11 @@ def main():
     partition = 3
     interval = 40000
 
-    dbSize = countDB(dbdir, database, interval)
-    minsup = min_sup * dbSize
+    # dbSize = countDB(dbdir, database, interval)
+    # minsup = min_sup * dbSize
 
-    resultPath = f"./data/{support}/{partition}/result.json"
+    resultPath = f"./data/{database}_{support}_{partition}_{interval}/result.json"
+    flistPath = f"./data/{database}_{support}_{partition}_{interval}/flist.json"
 
     conf = SparkConf().setAppName("IncMiningPFP")
     conf.set("spark.default.parallelism", str(partition))
@@ -53,12 +54,12 @@ def main():
 
     inc_number = 0
     dbPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
-    db, FMap, itemGidMap, gidItemMap = pfp(dbPath, min_sup, sc, partition, minsup, resultPath)
+    db, itemGidMap, gidItemMap, dbSize = pfp(dbPath, min_sup, sc, partition, resultPath, flistPath)
 
     inc_number += 1
     incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
     while os.path.isfile(incDBPath):
-        db, FMap, itemGidMap, gidItemMap = incPFP(db, min_sup, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap)
+        db, itemGidMap, gidItemMap, dbSize = incPFP(db, min_sup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap)
         inc_number += 1
         incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
     sc.stop()
