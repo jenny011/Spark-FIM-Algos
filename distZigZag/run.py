@@ -29,35 +29,34 @@ def main():
     # --------------------- shared MACROS ---------------------
     dbdir = "../incdatasets"
     databases = ["retail", "kosarak", "chainstore", "record"]
-    supports = [1,3,5,7,9,10,20,30,40,50]
+    supports = [1,11,21,31,41,51]
     partitions = [1,2,4,8,16]
     # interval = 0: no increment, mine the whole database
-    intervals = [20000, 40000, 60000, 80000, 100000]
+    intervals = [0,20000,40000,60000,80000,100000]
     test_num = 1
 
-
     for partition in partitions:
-        # --------------------- SPARK setup ---------------------
-        # --------------------- SPARK setup ---------------------
-        conf = SparkConf().setAppName("DistZigZag")
-        # set partition number
-        conf.set("spark.default.parallelism", str(partition))
-        sc = SparkContext.getOrCreate(conf=conf)
-
-        spark = SparkSession(sc)
-        schema = StructType([
-            StructField("algorithm", StringType(), False),
-            StructField("datasets", StringType(), False),
-            StructField("support", FloatType(), False)
-        ])
-        for i in range(1):
-            schema.add("test{}".format(i+1), FloatType(), True)
-
-        # --------------- EXPERIMENTS ----------------
-        # --------------- EXPERIMENTS ----------------
         for database in databases:
             for support in supports:
                 for interval in intervals:
+                    # --------------------- SPARK setup ---------------------
+                    # --------------------- SPARK setup ---------------------
+                    conf = SparkConf().setAppName("DistZigZag")
+                    # set partition number
+                    conf.set("spark.default.parallelism", str(partition))
+                    sc = SparkContext.getOrCreate(conf=conf)
+
+                    spark = SparkSession(sc)
+                    schema = StructType([
+                        StructField("algorithm", StringType(), False),
+                        StructField("datasets", StringType(), False),
+                        StructField("support", FloatType(), False)
+                    ])
+                    for i in range(1):
+                        schema.add("test{}".format(i+1), FloatType(), True)
+
+                    # --------------- EXPERIMENTS ----------------
+                    # --------------- EXPERIMENTS ----------------
                     print("......", database, support, partition, interval)
                     for t in range(test_num):
                         # --------------- exp MACROS ----------------
@@ -105,11 +104,13 @@ def main():
                         # --------------- SAVE result ----------------
                         ##### !!! comment it out to test SPEED !!! #####
                         ##### !!! comment it out to test SPEED !!! #####
+                        for i in range(len(global_fis)):
+                            global_fis[i] = global_fis[i][0]
                         with open(resultPath, 'w') as f:
-                            json.dump(list(global_fis), f)
+                            json.dump(global_fis, f)
                         ##### !!! comment it out to test SPEED !!! #####
                         ##### !!! comment it out to test SPEED !!! #####
-        sc.stop()
+                    sc.stop()
     return
 
 

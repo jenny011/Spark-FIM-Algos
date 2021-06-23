@@ -24,10 +24,10 @@ def main():
     # --------------- shared MACROS ----------------
     dbdir = "../incdatasets"
     databases = ["retail", "kosarak", "chainstore", "record"]
-    supports = [1,3,5,7,9,10,20,30,40,50]
+    supports = [1,11,21,31,41,51]
     partitions = [1,2,4,8,16]
     # interval = 0: no increment, mine the whole database
-    intervals = [20000, 40000, 60000, 80000, 100000]
+    intervals = [0,20000,40000,60000,80000,100000]
     test_num = 1
 
 
