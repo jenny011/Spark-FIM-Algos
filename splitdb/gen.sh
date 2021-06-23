@@ -1,11 +1,11 @@
 # !/bin/bash
 
-DBDIR=$1
-if [ -z $DBDIR ]; then
-  echo "give the path to the original database directory"
-  exit -1
-fi
-#DBDIR="../Tree-Based-FIM/datasets"
+#DBDIR=$1
+#if [ -z $DBDIR ]; then
+#  echo "give the path to the original database directory"
+#  exit -1
+#fi
+DBDIR="../SpFreno/datasets"
 
 bash split_interval.sh -p $DBDIR -d retail -g 20000
 bash split_interval.sh -p $DBDIR -d kosarak -g 20000

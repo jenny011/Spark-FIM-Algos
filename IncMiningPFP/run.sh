@@ -1,51 +1,31 @@
 # !/bin/bash
-help() {
-cat << EOF
-Usage:
-    -d default="test" ... database
-    -m default="40" ... minsup
-    -p default="2" ... partition
-EOF
-}
 
-while getopts d:m:p: flag
-do
-    case "${flag}" in
-        d) DB=${OPTARG};;
-		    m) MINSUP=${OPTARG};;
-        p) PARTITION=${OPTARG};;
-        ?) help() ;;
-    esac
-done
 
-# request type list is set to "post-get" by default
-if [ -z $DB ]; then
-    DB="test"
-fi
-# request number is set to 10 by default
-if [ -z $MINSUP ]; then
-    MINSUP="40"
-fi
-# thread number is set to 3 by default
-if [ -z $PARTITION ]; then
-    PARTITION="2"
-fi
-
-BASEDIR="/root/IncMiningPFP"
+BASEDIR="."
 
 DATADIR="$BASEDIR/data"
 if [ ! -d $DATADIR ]; then
 	mkdir $DATADIR
 fi
 
-MINSUPDIR="$DATADIR/$MINSUP"
-if [ ! -d $MINSUPDIR ]; then
-	mkdir $MINSUPDIR
-fi
+for MINSUP in 1 6 11 16 21 26 31 36 41 46
+do
 
-RESULTDIR="$MINSUPDIR/$PARTITION"
-if [ ! -d $RESULTDIR ]; then
-	mkdir $RESULTDIR
-fi
+    MINSUPDIR="$DATADIR/$MINSUP"
+    if [ ! -d $MINSUPDIR ]; then
+        mkdir $MINSUPDIR
+    fi
+    
+    for PARTITION in 1 2 4 8 16 32
+    do
+    
+        RESULTDIR="$MINSUPDIR/$PARTITION"
+        if [ ! -d $RESULTDIR ]; then
+            mkdir $RESULTDIR
+        fi
+        
+    done
+    
+done
 
-python $BASEDIR/run.py -d $DB -m $MINSUP -p $PARTITION
+python3 $BASEDIR/run.py

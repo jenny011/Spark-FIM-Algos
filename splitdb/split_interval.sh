@@ -33,10 +33,10 @@ if [ -z $GRAN ]; then
   exit -1
 fi
 
-OUTPUTDIR="./incdatasets/interval_$DB"_"$GRAN"
+OUTPUTDIR="../SpFreno/incdatasets/interval_$DB"_"$GRAN"
 if [ ! -d $OUTPUTDIR ]; then
   echo $OUTPUTDIR
 	mkdir $OUTPUTDIR
 fi
 
-python split_interval.py -p $DBDIR -d $DB -g $GRAN
+python3 split_interval.py -p $DBDIR -d $DB -g $GRAN
