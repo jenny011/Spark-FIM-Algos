@@ -13,7 +13,7 @@ granularity = args.granularity
 db = get_DB(args.dbdir, args.database)
 print(len(db))
 
-output_dir = f"./incdatasets/interval_{args.database}_{granularity}"
+output_dir = f"../SpFreno/incdatasets/interval_{args.database}_{granularity}"
 
 for i in range(math.ceil(len(db) / granularity)):
     incDB = db[granularity * i : min(granularity * (i+1), len(db))]

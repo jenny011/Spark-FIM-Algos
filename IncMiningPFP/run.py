@@ -19,7 +19,6 @@ os.environ["PYTHONHASHSEED"]=str(232)
 # parser.add_argument('--partition', '-p', help='num of workers', required=True)
 # args = parser.parse_args()
 
-
 def main():
     dbdir = "../incdatasets"
     database = "retail"
