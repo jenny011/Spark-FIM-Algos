@@ -80,7 +80,7 @@ def main():
 
                         # --- SAVE ---
                         with open(resultPath, 'w') as f:
-                            json.dump(result, f)
+                            json.dump(list(result), f)
                         sc.stop()
     return
 

@@ -67,7 +67,7 @@ def main():
                         minsup = min_sup * dbSize
 
                         resultPath = f"./data/{database}_{support}_{partition}_{interval}/result.json"
-                        vdbPath = f"./data/{database}_{support}_{partition}_{interval}/vdb.json"
+                        vdbPath = f"./data/{database}_{support}_{partition}_{interval}/vdb"
 
                         # --------------- RUN exp ----------------
                         # --- base ---

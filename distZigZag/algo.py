@@ -138,7 +138,7 @@ class ZigZag(GenMax):
         temp = {}
         for k in self.vdb.keys():
             if "," not in k:
-                temp[k] = self.vdb[k]
+                temp[k] = list(self.vdb[k])
         with open(vdbPath, 'w') as f:
             json.dump(temp, f)
 

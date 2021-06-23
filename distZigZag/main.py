@@ -35,7 +35,7 @@ def zigzag(dbPath, min_sup, sc, partition, minsup, vdbPath):
     dbGroup = sc.parallelize(dbGroupMap)
 
     # step 2: local mfis -- parallel ZigZag
-    local_zigzags = dbGroup.map(lambda db_shard: local_zigzag(db_shard[0], db_shard[1], min_sup, vdbPath)).cache()
+    local_zigzags = dbGroup.map(lambda db_shard: local_zigzag(db_shard[0], db_shard[1], min_sup, vdbPath+"_"+str(db_shard[0])+".json")).cache()
 
     # step 3: union of local mfis
     all_localMFIs = set()
@@ -79,7 +79,7 @@ def zigzagInc(incDBPath, min_sup, sc, partition, minsup, local_zigzags, vdbPath)
     partition_size = math.ceil(dbSize / partition)
     dbGroupMap = [(i, db[ i * partition_size : min( (i+1) * partition_size, dbSize )]) for i in range(partition)]
 
-    local_zigzags = local_zigzags.map(lambda shard: local_zigzagInc(shard, dbGroupMap[shard.gid][1], vdbPath)).cache()
+    local_zigzags = local_zigzags.map(lambda shard: local_zigzagInc(shard, dbGroupMap[shard.gid][1], vdbPath+"_"+shard.gid+".json")).cache()
 
     # step 3: union of local mfis
     all_localMFIs = set()
