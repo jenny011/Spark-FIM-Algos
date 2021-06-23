@@ -1,17 +1,15 @@
-from pyspark import RDD, SparkConf, SparkContext
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+
 from operator import add
-import os, math
+import os, math, json
 import numpy as np
 import pandas as pd
-import json
 
 from fpGrowth import buildAndMine, checkBuildAndMine
 from utils import *
 import threading
-
-from pyspark import SparkConf, SparkContext
-from pyspark.sql import SparkSession
-from pyspark.sql.types import *
 
 
 def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
@@ -52,7 +50,6 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
                 .map(lambda kv: (kv[0], list(kv[1])))
 
     # Reducer – FP-Growth on group-dependent shards
-    # localFIs = groupTrans.flatMap(lambda condDB: fpg(condDB[0], condDB[1], minsup, gidItemMap)).collect()
     localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))
 
     # step 5: Aggregation - remove duplicates
@@ -62,7 +59,7 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     for kv in globalFIs:
         result[kv[0]] = result.get(kv[0], 0) + kv[1]
     # globalFIs = set(localFIs.collect())
-    print("result>>>", result)
+    # print("result>>>", result)
     with open(resultPath, 'w') as f:
         json.dump(result, f)
 
@@ -112,20 +109,19 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
     globalFIs = localFIs.reduceByKey(add).collect()
     # globalFIs = set(localFIs.collect())
 
-    # load old results, merge, save
+    # step 4: load old results, merge, save
     with open(resultPath, 'r') as f:
         oldFIs = json.load(f)
 
     for kv in globalFIs:
         oldFIs[kv[0]] = kv[1]
-    #
     # result = {}
     # for k, v in oldFIs.items():
     #     if v >= minsup:
     #         result[k] = v
 
     # mergedFIs = globalFIs.union(oldFIs)
-    print("mergedResult>>>",oldFIs.keys())
+    # print("mergedResult>>>",oldFIs.keys())
     with open(resultPath, 'w') as f:
         json.dump(oldFIs, f)
 

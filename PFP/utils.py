@@ -23,7 +23,7 @@ def sortByFlist(trx, Flist):
     for i in trx:
         if i in Flist:
             temp.append(i)
-    return sorted(trx, key = lambda i: Flist[i])
+    return sorted(temp, key = lambda i: Flist[i])
 
 def groupDependentTrx(trx, itemGidMap):
     GTrxMap = {}
@@ -31,11 +31,3 @@ def groupDependentTrx(trx, itemGidMap):
         gid = itemGidMap[trx[i]]
         GTrxMap[gid] = trx[:i+1]
     return [(k,v) for k, v in GTrxMap.items()]
-
-def fpg(gid, db, minsup, gidItemMap):
-    items = gidItemMap[gid]
-    res = [item for item in items]
-    for item in items:
-        fi = buildAndMine(db, minsup)
-        res += fi
-    return res

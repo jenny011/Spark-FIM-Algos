@@ -48,14 +48,6 @@ def groupDependentTrx(trx, itemGidMap):
         GTrxMap[gid] = trx[:i+1]
     return [(k,v) for k, v in GTrxMap.items()]
 
-def fpg(gid, db, minsup, gidItemMap):
-    items = gidItemMap[gid]
-    res = [item for item in items]
-    for item in items:
-        fi = buildAndMine(db, minsup)
-        res += fi
-    return res
-
 # def writeFlistToJSON(Flist, fpath):
 #     Fdict = {'item':[], 'count':[]}
 #     for kv in Flist:

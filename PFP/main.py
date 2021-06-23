@@ -1,6 +1,6 @@
 from pyspark import RDD, SparkConf, SparkContext
 from operator import add
-import os, math
+import os, math, json
 import numpy as np
 
 from fpGrowth import buildAndMine
@@ -12,13 +12,13 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 
-def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
+def pfp(dbPath, min_sup, sc, partition, minsup, flistPath, oldDB=None):
     # prep: read database
     dbFile = sc.textFile(dbPath)
     dbSize = dbFile.count()
     db = dbFile.map(lambda r: r.split(" "))
 
-    # inc
+    # INC: merge DB
     if oldDB:
         db = sc.union([db, oldDB])
 
@@ -32,11 +32,21 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
     for kv in FlistRDD:
         FMap[kv[0]] = kv[1]
     Flist = list(FMap.keys())
-    # print("Flist>>>", Flist)
 
-    # inc
-    if oldFlist is not None and sorted(Flist) == sorted(oldFlist):
-        return None, db, Flist
+    # INC: if Flist not changed, return
+    if oldDB:
+        # read old Flist
+        with open(flistPath, 'r') as f:
+            oldFlist = json.load(f)
+        # compare
+        if oldFlist is not None and sorted(Flist) == sorted(oldFlist):
+            return None, db
+            # output updated Flist
+            with open(flistPath, 'w') as f:
+                json.dump(Flist, f)
+    else:
+        with open(flistPath, 'w') as f:
+            json.dump(Flist, f)
 
     # step 3: Grouping items
     itemGidMap = {}
@@ -54,10 +64,9 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
                         .groupByKey()\
                         .map(lambda kv: (kv[0], list(kv[1])))
     # Reducer – FP-Growth on group-dependent shards
-    # localFIs = groupTrans.flatMap(lambda condDB: fpg(condDB[0], condDB[1], minsup, gidItemMap)).collect()
     localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], minsup))
 
     # step 5: Aggregation - remove duplicates
     globalFIs = set(localFIs.collect())
     # print("result>>>", globalFIs)
-    return globalFIs, db, Flist
+    return globalFIs, db
