@@ -23,13 +23,16 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
         db = sc.union([db, oldDB])
 
     # step 1 & 2: sharding and parallel counting
-    Flist = db.flatMap(lambda trx: [(k,1) for k in trx])\
+    FlistRDD = db.flatMap(lambda trx: [(k,1) for k in trx])\
                     .reduceByKey(add)\
                     .filter(lambda kv: kv[1] >= minsup)\
                     .sortBy(lambda kv: kv[1], False)\
-                    .map(lambda kv: kv[0])\
                     .collect()
-    print("Flist>>>", Flist)
+    FMap = {}
+    for kv in FlistRDD:
+        FMap[kv[0]] = kv[1]
+    Flist = list(FMap.keys())
+    # print("Flist>>>", Flist)
 
     # inc
     if oldFlist is not None and sorted(Flist) == sorted(oldFlist):
@@ -46,7 +49,7 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
 
     # step 4: pfp
     # Mapper – Generating group-dependent transactions
-    groupDB = db.map(lambda trx: sortByFlist(trx, Flist))\
+    groupDB = db.map(lambda trx: sortByFlist(trx, FMap))\
                         .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                         .groupByKey()\
                         .map(lambda kv: (kv[0], list(kv[1])))

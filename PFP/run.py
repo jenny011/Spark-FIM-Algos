@@ -71,7 +71,7 @@ def main():
         incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
 
     with open(resultPath, 'w') as f:
-        json.dump(list(results), f)
+        json.dump(list(result), f)
     sc.stop()
     return
 

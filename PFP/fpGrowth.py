@@ -89,5 +89,5 @@ def buildAndMine(gid, db, minsup, basePtn=''):
         else:
                 fpTree = buildFPTree(db, dbItems, minsup)
         results = mineAll(fpTree, minsup, basePtn)
-        print(gid, results)
+        # print(gid, results)
         return results
