@@ -35,25 +35,26 @@ def main():
         for database in databases:
             for support in supports:
                 for interval in intervals:
-                    # --------------------- SPARK setup ---------------------
-                    # --------------------- SPARK setup ---------------------
-                    conf = SparkConf().setAppName("IncMiningPFP")
-                    conf.set("spark.default.parallelism", str(partition))
-                    sc = SparkContext.getOrCreate(conf=conf)
-
-                    spark = SparkSession(sc)
-                    schema = StructType([
-                        StructField("algorithm", StringType(), False),
-                        StructField("datasets", StringType(), False),
-                        StructField("support", FloatType(), False)
-                    ])
-                    for i in range(1):
-                        schema.add("test{}".format(i+1), FloatType(), True)
-
-                    # --------------- EXPERIMENTS ----------------
-                    # --------------- EXPERIMENTS ----------------
                     print("......", database, support, partition, interval)
                     for t in range(test_num):
+                        # --------------------- SPARK setup ---------------------
+                        # --------------------- SPARK setup ---------------------
+                        conf = SparkConf().setAppName("IncMiningPFP")
+                        conf.set("spark.default.parallelism", str(partition))
+                        sc = SparkContext.getOrCreate(conf=conf)
+
+                        spark = SparkSession(sc)
+                        schema = StructType([
+                            StructField("algorithm", StringType(), False),
+                            StructField("datasets", StringType(), False),
+                            StructField("support", FloatType(), False)
+                        ])
+                        for i in range(1):
+                            schema.add("test{}".format(i+1), FloatType(), True)
+
+                        # --------------- EXPERIMENTS ----------------
+                        # --------------- EXPERIMENTS ----------------
+
                         # --------------- exp MACROS ----------------
                         min_sup = support/100
 
@@ -76,7 +77,7 @@ def main():
                             db, itemGidMap, gidItemMap, dbSize = incPFP(db, min_sup, minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap)
                             inc_number += 1
                             incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
-                    sc.stop()
+                        sc.stop()
     return
 
 
