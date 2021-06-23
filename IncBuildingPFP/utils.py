@@ -3,19 +3,8 @@ import numpy as np
 import pandas as pd
 import json
 
-from fpGrowth import buildAndMine
+from cantree import buildAndMine
 import threading
-
-def countDB(dbdir, database, interval):
-    dbSize = 0
-    expDBdir = os.path.join(dbdir, f"interval_{database}_{interval}")
-    for filename in os.listdir(expDBdir):
-        if filename.endswith(".txt"):
-            with open(os.path.join(expDBdir, filename), 'r') as f:
-                for line in f:
-                    if line:
-                        dbSize += 1
-    return dbSize
 
 def scanDB(fpath, delimiter):
     db = []
@@ -63,10 +52,6 @@ def fpg(gid, db, minsup, gidItemMap):
 #     df = pd.read_json(fpath)
 #     Flist = df.set_index('item')['count'].to_dict()
 #     return Flist
-
-def writeFMapToJSON(FMap, fpath):
-    with open(fpath, 'w') as f:
-        json.dump(FMap, f)
 
 def writeFlistToJSON(Flist, fpath):
     Fdict = {}

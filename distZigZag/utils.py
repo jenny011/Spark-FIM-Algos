@@ -4,6 +4,17 @@ import pandas as pd
 import json, csv
 import threading
 
+def countDB(dbdir, database, interval):
+    dbSize = 0
+    expDBdir = os.path.join(dbdir, f"interval_{database}_{interval}")
+    for filename in os.listdir(expDBdir):
+        if filename.endswith(".txt"):
+            with open(os.path.join(expDBdir, filename), 'r') as f:
+                for line in f:
+                    if line:
+                        dbSize += 1
+    return dbSize
+
 # -------------------- db ops ----------------------
 # -------------------- db ops ----------------------
 def get_DB(DBDIR, dbname):
