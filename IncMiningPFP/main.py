@@ -17,7 +17,7 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     dbFile = sc.textFile(dbPath)
     dbSize = dbFile.count()
     minsup = min_sup * dbSize
-    db = dbFile.map(lambda r: r.split(" "))
+    db = dbFile.map(lambda r: r.split(" ")).cache()
 
     # step 1 & 2: sharding and parallel counting
     Flist = db.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -44,26 +44,28 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
 
     # step 4: pfp
     # Mapper – Generating group-dependent transactions
-    groupDB = db.map(lambda trx: sortByFlist(trx, freqFMap))\
+    globalFIs = db.map(lambda trx: sortByFlist(trx, freqFMap))\
                 .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                 .groupByKey()\
-                .map(lambda kv: (kv[0], list(kv[1])))
+                .map(lambda kv: (kv[0], list(kv[1])))\
+                .flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))\
+                .collect()
 
     # Reducer – FP-Growth on group-dependent shards
-    localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))
+    # localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))
 
     # step 5: Aggregation - remove duplicates
-    globalFIs = localFIs.reduceByKey(add).collect()
+    # globalFIs = localFIs.reduceByKey(add).collect()
 
-    result = {}
-    for kv in globalFIs:
-        result[kv[0]] = result.get(kv[0], 0) + kv[1]
+    # result = {}
+    # for kv in globalFIs:
+    #     result[kv[0]] = result.get(kv[0], 0) + kv[1]
     # globalFIs = set(localFIs.collect())
     # print("result>>>", result)
-    with open(resultPath, 'w') as f:
-        json.dump(result, f)
+    # with open(resultPath, 'w') as f:
+    #     json.dump(result, f)
 
-    return db, itemGidMap, gidItemMap, dbSize
+    return db, itemGidMap, gidItemMap, dbSize, set(globalFIs)
 
 ## DEBUG: {'265', '118', '1328,49', '32'}
 def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap):
@@ -72,7 +74,7 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
     incDBSize = incDBFile.count()
     incDB = incDBFile.map(lambda r: r.split(" "))
 
-    newDB = sc.union([db, incDB])
+    newDB = sc.union([db, incDB]).cache()
     minsup = min_sup * (dbSize + incDBSize)
 
     # step 1: Inc-Flist, merge Inc-Flist and Flist
@@ -97,24 +99,30 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
         itemGidMap[item] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [item]
 
-    groupDB = newDB.map(lambda trx: sortByFlist(trx, incFMap))\
+    globalFIs = newDB.map(lambda trx: sortByFlist(trx, incFMap))\
                     .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                     .groupByKey()\
-                    .map(lambda kv: (kv[0], list(kv[1])))
+                    .map(lambda kv: (kv[0], list(kv[1])))\
+                    .flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))\
+                    .collect()
+
+    # result = {}
+    # for kv in globalFIs:
+    #     result[kv[0]] = result.get(kv[0], 0) + kv[1]
 
     # step 3: mine new FP-tree using Inc-Flist
-    localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))
+    # localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))
 
     # aggregate
-    globalFIs = localFIs.reduceByKey(add).collect()
+    # globalFIs = localFIs.reduceByKey(add).collect()
     # globalFIs = set(localFIs.collect())
 
     # step 4: load old results, merge, save
-    with open(resultPath, 'r') as f:
-        oldFIs = json.load(f)
+    # with open(resultPath, 'r') as f:
+    #     oldFIs = json.load(f)
 
-    for kv in globalFIs:
-        oldFIs[kv[0]] = kv[1]
+    # for kv in globalFIs:
+    #     oldFIs[kv[0]] = kv[1]
     # result = {}
     # for k, v in oldFIs.items():
     #     if v >= minsup:
@@ -122,7 +130,7 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
 
     # mergedFIs = globalFIs.union(oldFIs)
     # print("mergedResult>>>",oldFIs.keys())
-    with open(resultPath, 'w') as f:
-        json.dump(oldFIs, f)
+    # with open(resultPath, 'w') as f:
+    #     json.dump(oldFIs, f)
 
-    return newDB, itemGidMap, gidItemMap, dbSize + incDBSize
+    return newDB, itemGidMap, gidItemMap, dbSize + incDBSize, set(globalFIs)

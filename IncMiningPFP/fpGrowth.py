@@ -59,15 +59,15 @@ def buildCondTree(condPB, minsup):
 def mine(tree, header, basePtn, minsup):
 	basePtn += header._key + ','
 	ptr = header._next
-	count = 0
+	# count = 0
 	condPB = []
 	while ptr:
-		count += ptr._count
+		# count += ptr._count
 		ptn = tree.prefix_path(ptr)
 		if ptn:
 			condPB.append(ptn)
 		ptr = ptr._next
-	patterns = [(basePtn, count)]
+	patterns = [basePtn]
 	if len(condPB) > 0:
 		condTree = buildCondTree(condPB, minsup)
 		patterns += mineAll(condTree, minsup, basePtn)

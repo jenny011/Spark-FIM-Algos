@@ -5,14 +5,17 @@ from utils import *
 
 
 class GenMax:
-    def __init__(self, min_sup, dbSize, vdb):
+    def __init__(self, min_sup, dbSize):
         self.min_sup = min_sup
         ##### OPTIMIZE save dbSize instead of db
         self.dbSize = dbSize
-        self.vdb = vdb
+        self.vdb = {}
         self.minsup = None
         self.mfis = []
         self.flist = []
+
+    def genVDB(self, db):
+        self.vdb = transposeDB(db)
 
     def get_tlist(self, itemset, itemsetStr):
         if itemsetStr not in self.vdb:
@@ -102,8 +105,8 @@ class GenMax:
 
 
 class ZigZag(GenMax):
-    def __init__(self, min_sup, dbSize, vdb, gid):
-        super().__init__(min_sup, dbSize, vdb)
+    def __init__(self, min_sup, dbSize, gid):
+        super().__init__(min_sup, dbSize)
         self.gid = gid
         self.vIncDB = {}
         self.retained = {}
@@ -127,12 +130,25 @@ class ZigZag(GenMax):
             self.get_tlist(itemset, itemsetStr)
             return len(self.vdb[itemsetStr])
 
-    def updateStates(self, vIncDB, incDBSize):
+    def getVDB(self, vdbPath):
+        with open(vdbPath, 'r') as f:
+            self.vdb = json.load(f)
+
+    def saveVDB(self, vdbPath):
         temp = {}
         for k in self.vdb.keys():
             if "," not in k:
                 temp[k] = self.vdb[k]
-        self.vdb = temp
+        with open(vdbPath, 'w') as f:
+            json.dump(temp, f)
+
+    def cleanup(self):
+        self.vdb = {}
+        self.vIncDB = {}
+        self.mfis = []
+        self.flist = []
+
+    def updateStates(self, vIncDB, incDBSize):
         self.vIncDB = vIncDB
         self.dbSize = self.dbSize + incDBSize
         self.minsup = self.min_sup * self.dbSize
@@ -169,7 +185,6 @@ class ZigZag(GenMax):
         return combineSet
 
     def runInc(self):
-        self.mfis = []
         self.backTrackInc([], self.flist, self.mfis)
         self.sortMFIs()
 
@@ -227,4 +242,5 @@ class ZigZag(GenMax):
                     if combStr not in combinations:
                         combinations[combStr] = self.support(combStr)
                 this_level = []
+        self.cleanup()
         return dictToList(combinations)

@@ -2,7 +2,7 @@ from pyspark import RDD, SparkConf, SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
-import os, argparse, time
+import os, json
 import numpy as np
 
 from main import pfp, incPFP
@@ -68,15 +68,19 @@ def main():
                         # --- base ---
                         inc_number = 0
                         dbPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
-                        db, itemGidMap, gidItemMap, dbSize = pfp(dbPath, min_sup, minsup, sc, partition, resultPath, flistPath)
+                        db, itemGidMap, gidItemMap, dbSize, result = pfp(dbPath, min_sup, minsup, sc, partition, resultPath, flistPath)
 
                         # --- increment ---
                         inc_number += 1
                         incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
                         while os.path.isfile(incDBPath):
-                            db, itemGidMap, gidItemMap, dbSize = incPFP(db, min_sup, minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap)
+                            db, itemGidMap, gidItemMap, dbSize, result = incPFP(db, min_sup, minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap)
                             inc_number += 1
                             incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
+
+                        # --- SAVE ---
+                        with open(resultPath, 'w') as f:
+                            json.dump(result, f)
                         sc.stop()
     return
 

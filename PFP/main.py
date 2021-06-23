@@ -16,11 +16,11 @@ def pfp(dbPath, min_sup, sc, partition, minsup, flistPath, oldDB=None):
     # prep: read database
     dbFile = sc.textFile(dbPath)
     dbSize = dbFile.count()
-    db = dbFile.map(lambda r: r.split(" "))
+    db = dbFile.map(lambda r: r.split(" ")).cache()
 
     # INC: merge DB
     if oldDB:
-        db = sc.union([db, oldDB])
+        db = sc.union([db, oldDB]).cache()
 
     # step 1 & 2: sharding and parallel counting
     FlistRDD = db.flatMap(lambda trx: [(k,1) for k in trx])\
