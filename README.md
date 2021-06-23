@@ -4,7 +4,9 @@
 Done
 
 ## IncMiningPFP
-Buggy
+Done
 
 ## DistZigZag
 Done
+
+## IncFreno
