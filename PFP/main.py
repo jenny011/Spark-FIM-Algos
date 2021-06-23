@@ -42,7 +42,7 @@ def pfp(dbPath, min_sup, sc, partition, minsup, oldDB=None, oldFlist=None):
     itemGidMap = {}
     gidItemMap = {}
     for i in range(len(Flist)):
-        gid = groupID(i, partition)
+        gid = groupID(int(Flist[i]), partition)
         itemGidMap[Flist[i]] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [Flist[i]]
 

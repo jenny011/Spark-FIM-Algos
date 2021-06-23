@@ -22,13 +22,13 @@ os.environ["PYTHONHASHSEED"]=str(232)
 def main():
     dbdir = "../incdatasets"
     database = "retail"
-    support = 40
+    support = 10
     min_sup = support/100
-    partition = 3
+    partition = 2
     interval = 40000
 
-    # dbSize = countDB(dbdir, database, interval)
-    # minsup = min_sup * dbSize
+    dbSize = countDB(dbdir, database, interval)
+    minsup = min_sup * dbSize
 
     resultPath = f"./data/{database}_{support}_{partition}_{interval}/result.json"
     flistPath = f"./data/{database}_{support}_{partition}_{interval}/flist.json"
@@ -54,12 +54,12 @@ def main():
 
     inc_number = 0
     dbPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
-    db, itemGidMap, gidItemMap, dbSize = pfp(dbPath, min_sup, sc, partition, resultPath, flistPath)
+    db, itemGidMap, gidItemMap, dbSize = pfp(dbPath, min_sup, minsup, sc, partition, resultPath, flistPath)
 
     inc_number += 1
     incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
     while os.path.isfile(incDBPath):
-        db, itemGidMap, gidItemMap, dbSize = incPFP(db, min_sup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap)
+        db, itemGidMap, gidItemMap, dbSize = incPFP(db, min_sup, minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap)
         inc_number += 1
         incDBPath = os.path.join(dbdir, f"interval_{database}_{interval}/db_{inc_number}.txt")
     sc.stop()

@@ -14,7 +14,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 
-def pfp(dbPath, min_sup, sc, partition, resultPath, flistPath):
+def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     # prep: read database
     dbFile = sc.textFile(dbPath)
     dbSize = dbFile.count()
@@ -33,13 +33,13 @@ def pfp(dbPath, min_sup, sc, partition, resultPath, flistPath):
     writeFMapToJSON(FMap, flistPath)
     freqFMap = {}
     for k, v in FMap.items():
-        if v >= minsup:
+        if v >= total_minsup:
             freqFMap[k] = v
 
     # step 3: Grouping items
     itemGidMap = {}
     gidItemMap = {}
-    for item in FMap.keys():
+    for item in freqFMap.keys():
         gid = groupID(int(item), partition)
         itemGidMap[item] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [item]
@@ -53,7 +53,7 @@ def pfp(dbPath, min_sup, sc, partition, resultPath, flistPath):
 
     # Reducer – FP-Growth on group-dependent shards
     # localFIs = groupTrans.flatMap(lambda condDB: fpg(condDB[0], condDB[1], minsup, gidItemMap)).collect()
-    localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], minsup))
+    localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))
 
     # step 5: Aggregation - remove duplicates
     globalFIs = localFIs.reduceByKey(add).collect()
@@ -69,7 +69,7 @@ def pfp(dbPath, min_sup, sc, partition, resultPath, flistPath):
     return db, itemGidMap, gidItemMap, dbSize
 
 ## DEBUG: {'265', '118', '1328,49', '32'}
-def incPFP(db, min_sup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap):
+def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap):
     # prep: read deltaD
     incDBFile = sc.textFile(incDBPath)
     incDBSize = incDBFile.count()
@@ -79,34 +79,34 @@ def incPFP(db, min_sup, sc, partition, incDBPath, dbSize, resultPath, flistPath,
     minsup = min_sup * (dbSize + incDBSize)
 
     # step 1: Inc-Flist, merge Inc-Flist and Flist
-    incFlist = incDB.flatMap(lambda trx: [(k,1) for k in trx])\
+    incFlistKV = incDB.flatMap(lambda trx: [(k,1) for k in trx])\
                     .reduceByKey(add)\
                     .sortBy(lambda kv: kv[1], False)\
                     .collect()
 
     FMap = readFlistFromJSON(flistPath)
-    freqIncFMap = {}
-    for kv in incFlist:
+    incFMap = {}
+    for kv in incFlistKV:
         k = kv[0]
         v = kv[1]
         FMap[k] = FMap.get(k, 0) + v
-        if v >= minsup:
-            freqIncFMap[k] = v
+        incFMap[k] = v
     writeFMapToJSON(FMap, flistPath)
+    incFlist = list(incFMap.keys())
 
     # step 2: shard new DB
-    for item in freqIncFMap:
+    for item in incFlist:
         gid = groupID(int(item), partition)
         itemGidMap[item] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [item]
 
-    groupDB = newDB.map(lambda trx: sortByFlist(trx, freqIncFMap))\
+    groupDB = newDB.map(lambda trx: sortByFlist(trx, incFMap))\
                     .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                     .groupByKey()\
                     .map(lambda kv: (kv[0], list(kv[1])))
 
     # step 3: mine new FP-tree using Inc-Flist
-    localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(list(freqIncFMap.keys()), gidItemMap[condDB[0]], condDB[0], condDB[1], minsup))
+    localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))
 
     # aggregate
     globalFIs = localFIs.reduceByKey(add).collect()
@@ -118,15 +118,15 @@ def incPFP(db, min_sup, sc, partition, incDBPath, dbSize, resultPath, flistPath,
 
     for kv in globalFIs:
         oldFIs[kv[0]] = kv[1]
-
-    result = {}
-    for k, v in oldFIs.items():
-        if v >= minsup:
-            result[k] = v
+    #
+    # result = {}
+    # for k, v in oldFIs.items():
+    #     if v >= minsup:
+    #         result[k] = v
 
     # mergedFIs = globalFIs.union(oldFIs)
-    print("mergedResult>>>",result.keys())
+    print("mergedResult>>>",oldFIs.keys())
     with open(resultPath, 'w') as f:
-        json.dump(result, f)
+        json.dump(oldFIs, f)
 
     return newDB, itemGidMap, gidItemMap, dbSize + incDBSize
