@@ -18,12 +18,7 @@ def groupID(index, partition):
     return index % partition
 
 def sortByFlist(trx, Flist):
-    # NO duplicate items in a trx
-    sortedTrx = []
-    for i in Flist:
-        if i in trx:
-            sortedTrx.append(i)
-    return sortedTrx
+    return sorted(trx, key = lambda i: Flist[i])
 
 def groupDependentTrx(trx, itemGidMap):
     GTrxMap = {}

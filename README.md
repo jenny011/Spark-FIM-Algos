@@ -1,7 +1,10 @@
 # Spark-FIM-Algos
 
 ## PFP
-testing
+Done
 
-## IncMiningPFP or IncBuildingPFP
-todo
+## IncMiningPFP
+Buggy
+
+## DistZigZag
+Done
