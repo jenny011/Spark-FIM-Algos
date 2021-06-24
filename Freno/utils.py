@@ -57,6 +57,8 @@ def distFreno(inFile, min_sup, sc, k):
     transData = transData.map(lambda v: v[1])
     
     transData = transData.groupBy(lambda v: int(v[0])%k).map(lambda v : (v[0], list(v[1]))).collect()#.sortByKey()
+    #print(transData[0][1][:5])
+    
     
     #print("transaction data num of keys:", transData.count())
 
@@ -68,11 +70,11 @@ def distFreno(inFile, min_sup, sc, k):
     # print(itemTidsParts.take(5))
 
     #phase 3: Freno from k-itemsets
-    freqRange = sc.parallelize(range(0, k)).repartition(sc.defaultParallelism)
-    freqItemsListToRun = freqRange.map(\
-        lambda v: transData[v])
+    #freqRange = sc.parallelize(range(0, k))
+    #freqItemsListToRun = freqRange.map(\
+    #    lambda v: transData[v])
 
     #print('freqItemsListToRun', freqItemsListToRun.take(1)[0])
     
-    res = freqItemsListToRun.map(lambda t: runFreno(t[1],minsup)).collect()
+    res = freqRange.map(lambda v: runFreno(transData[v][1],minsup)).collect()
     return res
