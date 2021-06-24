@@ -1,94 +1,97 @@
-from pyspark import RDD, SparkConf, SparkContext
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+
 from operator import add
-import os, math
+import os, math, json
 import numpy as np
 import pandas as pd
-import json
 
 from fpGrowth import buildAndMine, checkBuildAndMine
 from utils import *
 import threading
 
-from pyspark import SparkConf, SparkContext
-from pyspark.sql import SparkSession
-from pyspark.sql.types import *
 
-
-def pfp(dbPath, min_sup, sc, partition, minsup, resultPath):
+def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     # prep: read database
     dbFile = sc.textFile(dbPath)
     dbSize = dbFile.count()
-    db = dbFile.map(lambda r: r.split(" "))
+    minsup = min_sup * dbSize
+    db = dbFile.map(lambda r: r.split(" ")).cache()
 
     # step 1 & 2: sharding and parallel counting
-    FlistRDD = db.flatMap(lambda trx: [(k,1) for k in trx])\
+    Flist = db.flatMap(lambda trx: [(k,1) for k in trx])\
                     .reduceByKey(add)\
-                    .filter(lambda kv: kv[1] >= min_sup * dbSize)\
-                    .sortBy(lambda kv: kv[1], False)
+                    .sortBy(lambda kv: kv[1], False)\
+                    .collect()
     # 'hdfs://master.hadoop:7077/data/'
     FMap = {}
-    for kv in FlistRDD.collect():
+    for kv in Flist:
         FMap[kv[0]] = kv[1]
-    # writeFMapToJSON(FMap, './data/flist.json')
-    Flist = FlistRDD.map(lambda kv: kv[0])\
-                    .collect()
+    writeFMapToJSON(FMap, flistPath)
+    freqFMap = {}
+    for k, v in FMap.items():
+        if v >= total_minsup:
+            freqFMap[k] = v
 
     # step 3: Grouping items
     itemGidMap = {}
     gidItemMap = {}
-    for item in Flist:
+    for item in freqFMap.keys():
         gid = groupID(int(item), partition)
         itemGidMap[item] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [item]
 
     # step 4: pfp
     # Mapper – Generating group-dependent transactions
-    groupDB = db.map(lambda trx: sortByFlist(trx, Flist))\
+    globalFIs = db.map(lambda trx: sortByFlist(trx, freqFMap))\
                 .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                 .groupByKey()\
-                .map(lambda kv: (kv[0], list(kv[1])))
+                .map(lambda kv: (kv[0], list(kv[1])))\
+                .flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))\
+                .collect()
 
     # Reducer – FP-Growth on group-dependent shards
-    # localFIs = groupTrans.flatMap(lambda condDB: fpg(condDB[0], condDB[1], minsup, gidItemMap)).collect()
-    localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], minsup))
+    # localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))
 
     # step 5: Aggregation - remove duplicates
-    globalFIs = set(localFIs.collect())
-    print("result>>>", globalFIs)
-    with open(resultPath, 'w') as f:
-        json.dump(list(globalFIs), f)
+    # globalFIs = localFIs.reduceByKey(add).collect()
 
-    return db, FMap, itemGidMap, gidItemMap
+    # result = {}
+    # for kv in globalFIs:
+    #     result[kv[0]] = result.get(kv[0], 0) + kv[1]
+    # globalFIs = set(localFIs.collect())
+    # print("result>>>", result)
+    # with open(resultPath, 'w') as f:
+    #     json.dump(result, f)
 
+    return db, itemGidMap, gidItemMap, dbSize, set(globalFIs)
 
-def incPFP(db, min_sup, sc, partition, incDBPath, minsup, resultPath, FMap, itemGidMap, gidItemMap):
+## DEBUG: {'265', '118', '1328,49', '32'}
+def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap):
     # prep: read deltaD
-    deltaDBFile = sc.textFile(incDBPath)
-    deltaDBSize = deltaDBFile.count()
-    deltaDB = deltaDBFile.map(lambda r: r.split(" "))
+    incDBFile = sc.textFile(incDBPath)
+    incDBSize = incDBFile.count()
+    incDB = incDBFile.map(lambda r: r.split(" "))
 
-    newDB = sc.union([db, deltaDB])
+    newDB = sc.union([db, incDB]).cache()
+    minsup = min_sup * (dbSize + incDBSize)
 
-    # step 1: Inc-Flist
-    incFlistRDD = deltaDB.flatMap(lambda trx: [(k,1) for k in trx])\
+    # step 1: Inc-Flist, merge Inc-Flist and Flist
+    incFlistKV = incDB.flatMap(lambda trx: [(k,1) for k in trx])\
                     .reduceByKey(add)\
-                    .filter(lambda kv: kv[1] >= min_sup * deltaDBSize)\
-                    .sortBy(lambda kv: kv[1], False)
-    # print("incFlist>>>", incFlistRDD.collect())
-    incFlist = incFlistRDD.map(lambda kv: kv[0])\
+                    .sortBy(lambda kv: kv[1], False)\
                     .collect()
 
-    # merge Inc-Flist and Flist
-    # FMap = readFlistFromJSON('./data/flist.json')
-    for kv in incFlistRDD.collect():
-        if kv[0] in FMap:
-            FMap[kv[0]] = FMap[kv[0]] + kv[1]
-        else:
-            FMap[kv[0]] = kv[1]
-
-    # writeFMapToJSON(FMap, './data/flist.json')
-    # print("newFlist>>>", FMap)
-    Flist = list(FMap.keys())
+    FMap = readFlistFromJSON(flistPath)
+    incFMap = {}
+    for kv in incFlistKV:
+        k = kv[0]
+        v = kv[1]
+        FMap[k] = FMap.get(k, 0) + v
+        incFMap[k] = v
+    writeFMapToJSON(FMap, flistPath)
+    incFlist = list(incFMap.keys())
 
     # step 2: shard new DB
     for item in incFlist:
@@ -96,22 +99,38 @@ def incPFP(db, min_sup, sc, partition, incDBPath, minsup, resultPath, FMap, item
         itemGidMap[item] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [item]
 
-    groupDB = newDB.map(lambda trx: sortByFlist(trx, Flist))\
+    globalFIs = newDB.map(lambda trx: sortByFlist(trx, incFMap))\
                     .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                     .groupByKey()\
-                    .map(lambda kv: (kv[0], list(kv[1])))
+                    .map(lambda kv: (kv[0], list(kv[1])))\
+                    .flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))\
+                    .collect()
+
+    # result = {}
+    # for kv in globalFIs:
+    #     result[kv[0]] = result.get(kv[0], 0) + kv[1]
 
     # step 3: mine new FP-tree using Inc-Flist
-    localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], minsup))
-    globalFIs = set(localFIs.collect())
+    # localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))
 
-    # load old results, merge, save
-    with open(resultPath, 'r') as f:
-        oldFIs = json.load(f)
+    # aggregate
+    # globalFIs = localFIs.reduceByKey(add).collect()
+    # globalFIs = set(localFIs.collect())
 
-    mergedFIs = globalFIs.union(oldFIs)
-    print("mergedResult>>>",mergedFIs)
-    with open(resultPath, 'w') as f:
-        json.dump(list(mergedFIs), f)
+    # step 4: load old results, merge, save
+    # with open(resultPath, 'r') as f:
+    #     oldFIs = json.load(f)
 
-    return newDB, FMap, itemGidMap, gidItemMap
+    # for kv in globalFIs:
+    #     oldFIs[kv[0]] = kv[1]
+    # result = {}
+    # for k, v in oldFIs.items():
+    #     if v >= minsup:
+    #         result[k] = v
+
+    # mergedFIs = globalFIs.union(oldFIs)
+    # print("mergedResult>>>",oldFIs.keys())
+    # with open(resultPath, 'w') as f:
+    #     json.dump(oldFIs, f)
+
+    return newDB, itemGidMap, gidItemMap, dbSize + incDBSize, set(globalFIs)

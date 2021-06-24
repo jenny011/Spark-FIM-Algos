@@ -1,7 +1,14 @@
 # Spark-FIM-Algos
 
 ## PFP
-testing
+Done
 
-## IncMiningPFP or IncBuildingPFP
-todo
+## IncMiningPFP
+Done
+
+Answer from Java side is empty
+
+## DistZigZag
+task size issue
+
+## IncFreno

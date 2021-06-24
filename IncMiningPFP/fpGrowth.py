@@ -42,8 +42,8 @@ def buildFPTree(db, dbItems, minsup):
 def getPBItems(pb):
 	pbItems = {}
 	for ptn in pb:
-		for item in ptn[1]:
-			pbItems[item] = pbItems.get(item, 0) + ptn[0]
+		for item in ptn[0]:
+			pbItems[item] = pbItems.get(item, 0) + ptn[1]
 	return pbItems
 
 #-----------build a conditional fp-tree-----------
@@ -52,33 +52,36 @@ def buildCondTree(condPB, minsup):
 	pbItems = getPBItems(condPB)
 	condTree.createHeaderTable(pbItems, minsup)
 	for ptn in condPB:
-		condTree.add(ptn[1], ptn[0])
+		condTree.add(ptn[0], ptn[1])
 	return condTree
 
 #-----------mine an fp-tree for a pattern-----------
 def mine(tree, header, basePtn, minsup):
-    basePtn += header._key + ','
-    patterns = [basePtn]
-    ptr = header._next
-    condPB = []
-    while ptr:
-            ptn = tree.prefix_path(ptr)
-            if ptn:
-                    condPB.append(ptn)
-            ptr = ptr._next
-    if len(condPB) > 0:
-            condTree = buildCondTree(condPB, minsup)
-            patterns += mineAll(condTree, minsup, basePtn)
-    return patterns
+	basePtn += header._key + ','
+	ptr = header._next
+	# count = 0
+	condPB = []
+	while ptr:
+		# count += ptr._count
+		ptn = tree.prefix_path(ptr)
+		if ptn:
+			condPB.append(ptn)
+		ptr = ptr._next
+	patterns = [basePtn]
+	if len(condPB) > 0:
+		condTree = buildCondTree(condPB, minsup)
+		patterns += mineAll(condTree, minsup, basePtn)
+	return patterns
 
 #-----------mine an fp-tree-----------
 def mineAll(tree, minsup, basePtn=''):
     allPatterns = []
     for header in tree.headerTable.headers():
             allPatterns += mine(tree, header, basePtn, minsup)
+	# sort
     for i in range(len(allPatterns)):
-            tempPtn = sorted(allPatterns[i].rstrip(",").split(","))
-            allPatterns[i] = ",".join(tempPtn)
+            tempPtn = sorted(allPatterns[i][0].rstrip(",").split(","))
+            allPatterns[i] = (",".join(tempPtn), allPatterns[i][1])
     return allPatterns
 
 
@@ -113,14 +116,14 @@ def getIncDBItems(db, incFlist=[]):
 			for item in trx:
 				dbItems[item] = dbItems.get(item, 0) + 1
 		else:
-			for item in trx[1]:
-				dbItems[item] = dbItems.get(item, 0) + int(trx[0])
+			for item in trx[0]:
+				dbItems[item] = dbItems.get(item, 0) + int(trx[1])
 	return dbItems
 
 #------
-def constructIncDB(incFlist, newDB):
+def constructIncDB(incFlist, newDB, minsup):
     incDBItems = getIncDBItems(newDB)
-    fpTree = buildFPTree(newDB, incDBItems, 0)
+    fpTree = buildFPTree(newDB, incDBItems, minsup)
     incDB = mineAllTrx(fpTree, incFlist)
     return incDB
 
@@ -129,7 +132,7 @@ def buildIncFPTree(db, dbItems, minsup):
 	fpTree = myTree.FPTree()
 	fpTree.createHeaderTable(dbItems, minsup)
 	for trx in db:
-		fpTree.add(trx[1], int(trx[0]))
+		fpTree.add(trx[0], int(trx[1]))
 	return fpTree
 
 def buildAndMineIncDB(incFlist, incDB, minsup, basePtn=''):
@@ -148,7 +151,7 @@ def checkBuildAndMine(incFlist, gItems, gid, db, minsup, basePtn=''):
 			break
 	# if yes, get the group-dependent incDB and mine
 	if dontSkip:
-		incDB = constructIncDB(incFlist, db)
+		incDB = constructIncDB(incFlist, db, minsup)
 		results = buildAndMineIncDB(incFlist, incDB, minsup, basePtn)
 		return results
 	return []
