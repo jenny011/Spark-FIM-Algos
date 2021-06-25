@@ -1,15 +1,22 @@
+import os, json, argparse
+
+parser = argparse.ArgumentParser(description='argparse')
+parser.add_argument('--database', '-d', type=int, help='database name', required=True)
+parser.add_argument('--partition', '-p', type=int, help='num of workers', required=True)
+args = parser.parse_args()
+
 method = "Freno"
-dataset = "kosarak"
-partition = 16
+dataset = args.database
+partition = args.partition
 
 #read nohup
-res = {11:[0,0,0,0,0,0,0,0,0,0,0,0,0],21:[0,0,0,0,0,0,0,0,0,0,0,0,0],31:[0,0,0,0,0,0,0,0,0,0,0,0,0],41:[0,0,0,0,0,0,0,0,0,0,0,0,0],51:[0,0,0,0,0,0,0,0,0,0,0,0,0]}
+res = {1:[0,0,0,0,0,0,0,0,0,0,0,0,0],11:[0,0,0,0,0,0,0,0,0,0,0,0,0],21:[0,0,0,0,0,0,0,0,0,0,0,0,0],31:[0,0,0,0,0,0,0,0,0,0,0,0,0],41:[0,0,0,0,0,0,0,0,0,0,0,0,0],51:[0,0,0,0,0,0,0,0,0,0,0,0,0]}
 f = open("nohup.out", "r")
 line = f.readline()
 
 
 flag = 0
-sup = 11
+sup = 1
 remain = 0
 while line:
     #print(line[37:39])
@@ -38,7 +45,7 @@ while line:
         if sup != 51:
             sup += 10
         else:
-            sup = 11
+            sup = 1
 f.close()
 
 print(res)

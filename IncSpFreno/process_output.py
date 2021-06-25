@@ -1,6 +1,16 @@
+import os, json, argparse
+
+parser = argparse.ArgumentParser(description='argparse')
+parser.add_argument('--database', '-d', help='database name', required=True)
+parser.add_argument('--partition', '-p', type=int, help='num of workers', required=True)
+parser.add_argument('--interval', '-i', help='interval', required=True)
+args = parser.parse_args()
+
 method = "distIncFreno"
-dataset = "kosarak"
-partition = 16
+dataset = args.database
+partition = args.partition
+interval = args.interval
+
 
 #read nohup
 res = {1:[0,0,0,0,0,0,0,0,0,0,0,0,0],11:[0,0,0,0,0,0,0,0,0,0,0,0,0],21:[0,0,0,0,0,0,0,0,0,0,0,0,0],31:[0,0,0,0,0,0,0,0,0,0,0,0,0],41:[0,0,0,0,0,0,0,0,0,0,0,0,0],51:[0,0,0,0,0,0,0,0,0,0,0,0,0]}
@@ -14,7 +24,7 @@ sup = 1
 remain = 0
 while line:
     #print(line[37:39])
-    if line[37:40] == "Job":
+    if line[37:40] == "Job" and line[-2] == "s":
         print(line)
         if not flag:
             pos = line.find("took")
@@ -43,7 +53,7 @@ sv = []
 for v in res.values():
     sv.append(",".join([str(k) for k in v])+"\n")
 
-f = open("output_{0}_{1}_{2}.txt".format(method, dataset, partition), "w")
+f = open("output_{0}_{1}_{2}_{3}.txt".format(method, dataset,interval,partition), "w")
 f.writelines(sv)
 f.close()
 
