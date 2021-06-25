@@ -46,18 +46,16 @@ def incFreno(incDBPath, minsup, sc, k, freqRange, res):
     
     deltaDBRaw = scanDB(incDBPath, " ")
     
-    
     out_rdd = []
     for trx in deltaDBRaw:
         out_rdd.extend([trx[i:] for i in range(len(trx))])
-    transDataFile = sc.parallelize(out_rdd)
+    transDataFile = sc.parallelize(out_rdd)#.cache()
     transData = transDataFile.map(lambda v: (v[0], v))
     transData = transData.map(lambda v: v[1])
     transData = transData.groupBy(lambda v: int(v[0])%k).map(lambda v : (v[0], list(v[1]))).collect()
     
-    
-    res = freqRange.map(lambda v: concatFreno(transData[v][1],res[v])).collect()
-    return freqRange, res
+    freqRange.map(lambda v: concatFreno(transData[v][1],res[v])).cache()
+    return freqRange
     
 def distFreno(inFile, minsup, sc, k, freqRange):
     
@@ -66,7 +64,7 @@ def distFreno(inFile, minsup, sc, k, freqRange):
     out_rdd = []
     for trx in transDataRaw:
         out_rdd.extend([trx[i:] for i in range(len(trx))])
-    transDataFile = sc.parallelize(out_rdd)    
+    transDataFile = sc.parallelize(out_rdd)#.cache()    
     transData = transDataFile.map(lambda v: (v[0], v))
     transData = transData.map(lambda v: v[1])
     
@@ -75,6 +73,8 @@ def distFreno(inFile, minsup, sc, k, freqRange):
     print("number of partitions used: {}".format(sc.defaultParallelism))
 
     #phase 3: Freno from k-itemsets
-    res = freqRange.map(lambda v: runFreno(transData[v][1],minsup)).collect()
-    return freqRange, res
+    freqRange.map(lambda v: runFreno(transData[v][1],minsup)).cache()
+    #res = res.collect()
+    #freqRange.map(lambda v: runFreno(transData[v][1],minsup)).collect()
+    return freqRange
 

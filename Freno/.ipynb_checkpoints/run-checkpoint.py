@@ -8,7 +8,7 @@ import time
 import os
 import numpy as np
 
-memory = '61g'
+memory = '32g'
 pyspark_submit_args = ' --driver-memory ' + memory + ' pyspark-shell'
 os.environ["PYSPARK_SUBMIT_ARGS"] = pyspark_submit_args
 #os.environ["PYTHONHASHSEED"]=str(232)
@@ -16,34 +16,32 @@ os.environ["PYSPARK_SUBMIT_ARGS"] = pyspark_submit_args
 def main():
     
     database = ["kosarak"]
-    support = [31,41,51]
+    support = [1,6,11,16,21,26,31,36,41,46]
     partition = 16
 
     conf = SparkConf().setAppName("FrenoTest")
-    #sc = SparkContext.getOrCreate(conf=conf)
-    #sc.setLogLevel("INFO")
+    sc = SparkContext.getOrCreate(conf=conf)
+    sc.setLogLevel("INFO")
     #sc = SparkContext(conf=conf)
 
-    #spark = SparkSession(sc)
-    #schema = StructType([
-    #    StructField("algorithm", StringType(), False),
-    #    StructField("datasets", StringType(), False),
-    #    StructField("support", FloatType(), False)
-    #])
-    #for i in range(1):
-    #    schema.add("test{}".format(i+1), FloatType(), True)
+    spark = SparkSession(sc)
+    schema = StructType([
+        StructField("algorithm", StringType(), False),
+        StructField("datasets", StringType(), False),
+        StructField("support", FloatType(), False)
+    ])
+    for i in range(1):
+        schema.add("test{}".format(i+1), FloatType(), True)
     #experiments = []
 
     for f in database:
         for s in support:
             for i in range(13):
-                sc = SparkContext.getOrCreate(conf=conf)
-                #sc.setLogLevel("INFO") 
-            	distFreno("./datasets/{}.txt".format(f), s/100, sc, partition)
-            	#print(res)
+            	res = distFreno("./databases/{}.txt".format(f), s/100, sc, partition)
+            	print(res)
     
-    		sc.stop()
-    #return res
+    sc.stop()
+    return res
     
     
 if __name__=="__main__":

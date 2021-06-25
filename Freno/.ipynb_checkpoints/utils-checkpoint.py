@@ -33,8 +33,7 @@ def runFreno(transactions, minsup):
     for trx in transactions:
         tree.insert(tree._root,trx)
     print(tree.size())
-    return tree
-
+    return tree.__repr__() ,tree.size()
 
 def distFreno(inFile, min_sup, sc, k):
     
@@ -71,12 +70,11 @@ def distFreno(inFile, min_sup, sc, k):
     # print(itemTidsParts.take(5))
 
     #phase 3: Freno from k-itemsets
-    freqRange = sc.parallelize(range(0, k))
+    #freqRange = sc.parallelize(range(0, k))
     #freqItemsListToRun = freqRange.map(\
     #    lambda v: transData[v])
 
     #print('freqItemsListToRun', freqItemsListToRun.take(1)[0])
     
-    freqRange.map(lambda v: runFreno(transData[v][1],minsup)).collect()
-    return
-
+    res = freqRange.map(lambda v: runFreno(transData[v][1],minsup)).collect()
+    return res
