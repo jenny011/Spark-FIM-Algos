@@ -4,9 +4,18 @@ import numpy as np
 from fpGrowth import buildAndMine
 import threading
 
+def scanDB(fpath, delimiter=" "):
+    db = []
+    with open(fpath, 'r') as f:
+        for line in f:
+            if line:
+                trx = line.rstrip().split(delimiter)
+                db.append(trx)
+    return db
+
 def countDB(dbdir, database, interval):
     dbSize = 0
-    expDBdir = os.path.join(dbdir, f"interval_{database}_{interval}")
+    expDBdir = os.path.join(dbdir, "interval_{0}_{1}".format(database, interval))
     for filename in os.listdir(expDBdir):
         if filename.endswith(".txt"):
             with open(os.path.join(expDBdir, filename), 'r') as f:

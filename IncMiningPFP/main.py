@@ -14,10 +14,13 @@ import threading
 
 def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     # prep: read database
-    dbFile = sc.textFile(dbPath)
-    dbSize = dbFile.count()
+    dbList = scan(dbPath)
+    dbSize = len(dbList)
+    # dbFile = sc.textFile(dbPath)
+    # dbSize = dbFile.count()
     minsup = min_sup * dbSize
-    db = dbFile.map(lambda r: r.split(" ")).cache()
+    # db = dbFile.map(lambda r: r.split(" ")).cache()
+    db = sc.parallelize(dbList).cache()
 
     # step 1 & 2: sharding and parallel counting
     Flist = db.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -70,9 +73,12 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
 ## DEBUG: {'265', '118', '1328,49', '32'}
 def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap):
     # prep: read deltaD
-    incDBFile = sc.textFile(incDBPath)
-    incDBSize = incDBFile.count()
-    incDB = incDBFile.map(lambda r: r.split(" "))
+    incDB = scan(incDBPath)
+    incDBSize = len(incDBList)
+    incDB = sc.parallelize(incDB)
+    # incDBFile = sc.textFile(incDBPath)
+    # incDBSize = incDBFile.count()
+    # incDB = incDBFile.map(lambda r: r.split(" "))
 
     newDB = sc.union([db, incDB]).cache()
     minsup = min_sup * (dbSize + incDBSize)

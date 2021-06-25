@@ -14,9 +14,9 @@ from pyspark.sql.types import *
 
 def pfp(dbPath, min_sup, sc, partition, minsup, flistPath, oldDB=None):
     # prep: read database
-    dbFile = sc.textFile(dbPath)
-    dbSize = dbFile.count()
-    db = dbFile.map(lambda r: r.split(" ")).cache()
+    dbList = scanDB(dbPath)
+    dbSize = len(dbList)
+    db = sc.parallelize(dbList).cache()
 
     # INC: merge DB
     if oldDB:

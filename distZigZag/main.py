@@ -24,9 +24,8 @@ def local_zigzag(db_id, db, min_sup, vdbPath):
 
 def zigzag(dbPath, min_sup, sc, partition, minsup, vdbPath):
     # prep: read db
-    dbFile = sc.textFile(dbPath)
-    dbSize = dbFile.count()
-    db = dbFile.map(lambda r: r.split(" ")).collect()
+    db = scanDB(dbPath)
+    dbSize = len(db)
 
     # step 1: split dataset ???? Use Grouping ????
     # ???? WARN TaskSetManager: Stage 2 contains a task of very large size (4178 KB). The maximum recommended task size is 100 KB.
@@ -71,9 +70,8 @@ def local_zigzagInc(zigzag_instance, incDB, vdbPath):
 
 def zigzagInc(incDBPath, min_sup, sc, partition, minsup, local_zigzags, vdbPath):
     # prep: read db
-    dbFile = sc.textFile(incDBPath)
-    dbSize = dbFile.count()
-    db = dbFile.map(lambda r: r.split(" ")).collect()
+    db = scanDB(dbPath)
+    dbSize = len(db)
 
     # step 1: split dataset ???? Use Grouping ????
     partition_size = math.ceil(dbSize / partition)
