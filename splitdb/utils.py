@@ -31,6 +31,6 @@ def scanDB(fpath, delimiter):
     return db
 
 def writeDB(dir, db, number):
-    with open(os.path.join(dir, f"db_{number}.txt"), 'w') as f:
+    with open(os.path.join(dir, "db_{0}.txt".format(number)), 'w') as f:
         for line in db:
             f.write(line)
