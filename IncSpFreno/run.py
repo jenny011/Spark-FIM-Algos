@@ -44,6 +44,7 @@ def main():
                 freqRange = incFreno(os.path.join(incDir,incName), minsup, sc, partition, freqRange)
                 #print(res)
             sc.stop()
+    return
     
     
 if __name__=="__main__":
