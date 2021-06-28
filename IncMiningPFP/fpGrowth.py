@@ -74,15 +74,19 @@ def mine(tree, header, basePtn, minsup):
 	return patterns
 
 #-----------mine an fp-tree-----------
-def mineAll(tree, minsup, basePtn=''):
-    allPatterns = []
-    for header in tree.headerTable.headers():
-            allPatterns += mine(tree, header, basePtn, minsup)
+def mineAll(tree, minsup, basePtn='', incFlist=[]):
+	allPatterns = []
+	for header in tree.headerTable.headers():
+		if incFlist:
+			if header._key in incFlist:
+				allPatterns += mine(tree, header, basePtn, minsup)
+		else:
+			allPatterns += mine(tree, header, basePtn, minsup)
 	# sort
-    for i in range(len(allPatterns)):
-            tempPtn = sorted(allPatterns[i][0].rstrip(",").split(","))
-            allPatterns[i] = (",".join(tempPtn), allPatterns[i][1])
-    return allPatterns
+	for i in range(len(allPatterns)):
+		tempPtn = sorted(allPatterns[i].rstrip(",").split(","))
+		allPatterns[i] = ",".join(tempPtn)
+	return allPatterns
 
 
 def buildAndMine(gid, db, minsup, basePtn=''):
@@ -138,7 +142,7 @@ def buildIncFPTree(db, dbItems, minsup):
 def buildAndMineIncDB(incFlist, incDB, minsup, basePtn=''):
     incDBItems = getIncDBItems(incDB, incFlist)
     fpTree = buildIncFPTree(incDB, incDBItems, minsup)
-    results = mineAll(fpTree, minsup, basePtn)
+    results = mineAll(fpTree, minsup, basePtn, incFlist)
     return results
 
 
@@ -154,4 +158,4 @@ def checkBuildAndMine(incFlist, gItems, gid, db, minsup, basePtn=''):
 		incDB = constructIncDB(incFlist, db, minsup)
 		results = buildAndMineIncDB(incFlist, incDB, minsup, basePtn)
 		return results
-	return []
+	return False

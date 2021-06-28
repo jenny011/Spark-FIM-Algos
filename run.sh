@@ -23,8 +23,9 @@ do
 		do
 			for INTERVAL in 0 20000 40000 60000 80000 100000
 			do
-				for PARTITION in 1 4 8 16
-				do
+				PARTITION=1
+				# for PARTITION in 1 4 8 16
+				# do
 					EXPDIR="$DBDIR/$MINSUP"_"$INTERVAL"_"$PARTITION"
 					if [ ! -d $EXPDIR ]; then
 						mkdir $EXPDIR
@@ -65,7 +66,7 @@ do
 
 						python3 /root/process_output.py -a $ALGO -d $DB -m $MINSUP -p $PARTITION -i $INTERVAL -n $NUM
 					done
-				done
+				# done
 			done
 		done
 	done

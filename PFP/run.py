@@ -94,6 +94,8 @@ def main():
     ##### !!! comment it out to test SPEED !!! #####
     ##### !!! comment it out to test SPEED !!! #####
 
+    # NEW
+    sc.clearCache()
     sc.stop()
     return
 

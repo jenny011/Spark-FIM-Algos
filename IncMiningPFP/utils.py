@@ -1,6 +1,5 @@
 import os, math
 import numpy as np
-import pandas as pd
 import json
 
 from fpGrowth import buildAndMine
@@ -17,7 +16,7 @@ def countDB(dbdir, database, interval):
                         dbSize += 1
     return dbSize
 
-def scanDB(fpath, delimiter):
+def scanDB(fpath, delimiter=" "):
     db = []
     with open(fpath,'r') as f:
         for line in f:

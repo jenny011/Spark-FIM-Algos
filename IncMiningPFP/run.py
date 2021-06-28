@@ -24,7 +24,7 @@ args = parser.parse_args()
 def main():
     # --------------------- shared MACROS ---------------------
     # --------------------- shared MACROS ---------------------
-    dbdir = "./incdatasets"
+    dbdir = "../incdatasets"
     database = args.database
     support = args.support
     partition = args.partition
@@ -60,31 +60,42 @@ def main():
 
     # resultPath = f"./data/{database}_{support}_{interval}_{partition}/result.json"
     # flistPath = f"./data/{database}_{support}_{interval}_{partition}/flist.json"
-    resultPath = "./data/result.json"
+    resultPath = "./data/result"
     flistPath = "./data/flist.json"
 
     # --------------- RUN exp ----------------
     # --- base ---
     inc_number = 0
     dbPath = os.path.join(dbdir, "interval_{0}_{1}/db_{2}.txt".format(database, interval, inc_number))
-    db, itemGidMap, gidItemMap, dbSize, result = pfp(dbPath, min_sup, minsup, sc, partition, resultPath, flistPath)
+    db, itemGidMap, gidItemMap, dbSize = pfp(dbPath, min_sup, minsup, sc, partition, resultPath, flistPath)
 
     # --- increment ---
     inc_number += 1
     incDBPath = os.path.join(dbdir, "interval_{0}_{1}/db_{2}.txt".format(database, interval, inc_number))
     while os.path.isfile(incDBPath):
-        db, itemGidMap, gidItemMap, dbSize, result = incPFP(db, min_sup, minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap)
+        db, itemGidMap, gidItemMap, dbSize = incPFP(db, min_sup, minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap)
         inc_number += 1
         incDBPath = os.path.join(dbdir, "interval_{0}_{1}/db_{2}.txt".format(database, interval, inc_number))
 
     # --- SAVE ---
-    print(result)
+    result = []
+    for i in range(partition):
+        with open(resultPath + "_" + str(i) + ".json", "r") as f:
+            try:
+                partialResult = json.load(f)
+                result.extend(partialResult)
+            except:
+                continue
+    print(set(result))
     ##### !!! comment it out to test SPEED !!! #####
     ##### !!! comment it out to test SPEED !!! #####
     # with open(resultPath, 'w') as f:
     #     json.dump(list(result), f)
     ##### !!! comment it out to test SPEED !!! #####
     ##### !!! comment it out to test SPEED !!! #####
+
+    # NEW
+    sc.clearCache()
     sc.stop()
     return
 

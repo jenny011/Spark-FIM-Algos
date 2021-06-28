@@ -5,7 +5,6 @@ from pyspark.sql.types import *
 from operator import add
 import os, math, json
 import numpy as np
-import pandas as pd
 
 from fpGrowth import buildAndMine, checkBuildAndMine
 from utils import *
@@ -14,11 +13,11 @@ import threading
 
 def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     # prep: read database
-    dbList = scan(dbPath)
+    dbList = scanDB(dbPath)
     dbSize = len(dbList)
     # dbFile = sc.textFile(dbPath)
     # dbSize = dbFile.count()
-    minsup = min_sup * dbSize
+    # minsup = min_sup * dbSize
     # db = dbFile.map(lambda r: r.split(" ")).cache()
     db = sc.parallelize(dbList).cache()
 
@@ -32,6 +31,7 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     for kv in Flist:
         FMap[kv[0]] = kv[1]
     writeFMapToJSON(FMap, flistPath)
+    # filter freq items
     freqFMap = {}
     for k, v in FMap.items():
         if v >= total_minsup:
@@ -51,37 +51,28 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
                 .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                 .groupByKey()\
                 .map(lambda kv: (kv[0], list(kv[1])))\
-                .flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))\
+                .map(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))\
                 .collect()
 
-    # Reducer – FP-Growth on group-dependent shards
-    # localFIs = groupDB.flatMap(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))
+    # save result
+    for i in range(len(globalFIs)):
+        with open(resultPath + "_" + str(i) + ".json", 'w') as f:
+            json.dump(globalFIs[i], f)
 
-    # step 5: Aggregation - remove duplicates
-    # globalFIs = localFIs.reduceByKey(add).collect()
+    return db, itemGidMap, gidItemMap, dbSize
 
-    # result = {}
-    # for kv in globalFIs:
-    #     result[kv[0]] = result.get(kv[0], 0) + kv[1]
-    # globalFIs = set(localFIs.collect())
-    # print("result>>>", result)
-    # with open(resultPath, 'w') as f:
-    #     json.dump(result, f)
 
-    return db, itemGidMap, gidItemMap, dbSize, set(globalFIs)
-
-## DEBUG: {'265', '118', '1328,49', '32'}
 def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap):
     # prep: read deltaD
-    incDB = scan(incDBPath)
+    incDBList = scanDB(incDBPath)
     incDBSize = len(incDBList)
-    incDB = sc.parallelize(incDB)
+    incDB = sc.parallelize(incDBList)
     # incDBFile = sc.textFile(incDBPath)
     # incDBSize = incDBFile.count()
     # incDB = incDBFile.map(lambda r: r.split(" "))
 
     newDB = sc.union([db, incDB]).cache()
-    minsup = min_sup * (dbSize + incDBSize)
+    # minsup = min_sup * (dbSize + incDBSize)
 
     # step 1: Inc-Flist, merge Inc-Flist and Flist
     incFlistKV = incDB.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -91,11 +82,17 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
 
     FMap = readFlistFromJSON(flistPath)
     incFMap = {}
+    freqIncFMap = {}
+    freqIncFlist = []
     for kv in incFlistKV:
         k = kv[0]
         v = kv[1]
-        FMap[k] = FMap.get(k, 0) + v
+        newv = FMap.get(k, 0) + v
+        FMap[k] = newv
         incFMap[k] = v
+        if newv >= total_minsup:
+            freqIncFMap[k] = newv
+            freqIncFlist.append(k)
     writeFMapToJSON(FMap, flistPath)
     incFlist = list(incFMap.keys())
 
@@ -105,38 +102,29 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
         itemGidMap[item] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [item]
 
-    globalFIs = newDB.map(lambda trx: sortByFlist(trx, incFMap))\
+    globalFIs = newDB.map(lambda trx: sortByFlist(trx,freqIncFMap))\
                     .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                     .groupByKey()\
                     .map(lambda kv: (kv[0], list(kv[1])))\
-                    .flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))\
+                    .map(lambda condDB: checkBuildAndMine(freqIncFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))\
                     .collect()
 
-    # result = {}
-    # for kv in globalFIs:
-    #     result[kv[0]] = result.get(kv[0], 0) + kv[1]
+    # merge results
+    for i in range(len(globalFIs)):
+        if globalFIs[i] is not False:
+            with open(resultPath + "_" + str(i) + ".json", 'r') as f:
+                try:
+                    oldResults = json.load(f)
+                except:
+                    oldResults = []
 
-    # step 3: mine new FP-tree using Inc-Flist
-    # localFIs = groupDB.flatMap(lambda condDB: checkBuildAndMine(incFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))
+            mergedResults = []
+            for item in globalFIs[i]:
+                if item not in oldResults:
+                    mergedResults.append(item)
+            mergedResults.extend(oldResults)
 
-    # aggregate
-    # globalFIs = localFIs.reduceByKey(add).collect()
-    # globalFIs = set(localFIs.collect())
+            with open(resultPath + "_" + str(i) + ".json", 'w') as f:
+                json.dump(mergedResults, f)
 
-    # step 4: load old results, merge, save
-    # with open(resultPath, 'r') as f:
-    #     oldFIs = json.load(f)
-
-    # for kv in globalFIs:
-    #     oldFIs[kv[0]] = kv[1]
-    # result = {}
-    # for k, v in oldFIs.items():
-    #     if v >= minsup:
-    #         result[k] = v
-
-    # mergedFIs = globalFIs.union(oldFIs)
-    # print("mergedResult>>>",oldFIs.keys())
-    # with open(resultPath, 'w') as f:
-    #     json.dump(oldFIs, f)
-
-    return newDB, itemGidMap, gidItemMap, dbSize + incDBSize, set(globalFIs)
+    return newDB, itemGidMap, gidItemMap, dbSize + incDBSize
