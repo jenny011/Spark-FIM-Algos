@@ -7,8 +7,11 @@
 </ul>
 ## 第一步 本地 gen_slurms/
 `$ bash gen.sh` 生成所有参数组合脚本
+
 ## 第二步 上传 slurms/ 至hpc的freno目录
+
 ## 第三步 hpc的freno目录
+
 ### 相关文件夹结构如下
 <ol>
 <li>7次实验的slurm脚本分别位于7个文件夹：slurms/slurms[0-6]</li>
@@ -25,5 +28,5 @@
 <li>生成exp_output/[db]/perf的子目录：在exp_output里跑`$ bash gendir.sh`</li>
 <li>自动sbatch: `$ bash batch.sh [0-6]`</li>
 </ol>
-batch.sh修改后可以不同的时间间隔自动提交任意文件夹内的slurm文件<br>
+batch.sh修改后可以不同的时间间隔自动提交任意文件夹内的所有slurm文件<br>
 <b>一次性提交的任务可能很多，遇到问题请调整slurms文件夹和batch.sh</b>
