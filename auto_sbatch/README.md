@@ -31,5 +31,5 @@
 <li>生成exp_output/[db]/perf的子目录：在exp_output里跑`$ bash gendir.sh`</li>
 <li>自动sbatch: `$ bash batch.sh [0-6]`</li>
 </ol>
-batch.sh修改后可以不同的时间间隔自动提交任意文件夹内的slurm文件<br>
+batch.sh修改后可以不同的时间间隔自动提交任意文件夹内的所有slurm文件<br>
 <b>一次性提交的任务可能很多，遇到问题请调整slurms文件夹和batch.sh</b>
