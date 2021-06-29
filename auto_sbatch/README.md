@@ -15,7 +15,7 @@
 
 ### 相关文件夹结构如下
 <ol>
-<li>7次实验的slurm脚本放入7个文件夹：slurms/slurms[0-6]</li>
+<li>7次实验的slurm脚本分别放入7个文件夹：slurms/slurms[0-6]</li>
 <li>实验结果输出目录：exp_output</li>
 <li>频繁项集输出目录：exp_output/[db]/result/[minsup]_[chunkSize]_[partition].out</li>
 <li>速度结果输出目录：exp_output/[db]/perf/[minsup]_[chunkSize]_[partition]/[0-6].txt</li>
