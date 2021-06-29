@@ -7,6 +7,7 @@
 </ul>
 
 ## 第一步 本地 gen_slurms
+建freno_slurms/文件夹 <br>
 `$ python gen.py` 生成所有参数组合脚本
 
 ## 第二步 上传 freno_slurms/ 至hpc的freno目录
