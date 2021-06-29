@@ -23,13 +23,12 @@
 <li>自动sbatch的脚本：batch.sh</li>
 </ol>
 
-### 相关操作如下
-<ol>
-<li>`mv "slurms/freno_*_*_*_0.slurm" slurms/slurms0`</li>
-<li>生成exp_output/[db]：`for d in retail ...; do mkdir exp_output/$d; done`</li>
-<li>生成exp_output/[db]/perf; result：`mkdir exp_output/*/perf; mkdir exp_output/*/result`</li>
-<li>生成exp_output/[db]/perf的子目录：在exp_output里跑`$ bash gendir.sh`</li>
-<li>自动sbatch: `$ bash batch.sh [0-6]`</li>
+### 相关操作如
+1. `mv "slurms/freno_*_*_*_0.slurm" slurms/slurms0`
+2. 生成exp_output/[db]：`for d in retail ...; do mkdir exp_output/$d; done`
+3. 生成exp_output/[db]/perf; result：`mkdir exp_output/*/perf; mkdir exp_output/*/result`
+4. 生成exp_output/[db]/perf的子目录：在exp_output里跑`$ bash gendir.sh`
+5. 自动sbatch: `$ bash batch.sh [0-6]`
 </ol>
 batch.sh修改后可以不同的时间间隔自动提交任意文件夹内的所有slurm文件<br>
 <b>一次性提交的任务可能很多，遇到问题请调整slurms文件夹和batch.sh</b>
