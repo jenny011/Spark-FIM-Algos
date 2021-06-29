@@ -5,10 +5,14 @@
 <li>batch.sh</li>
 <li>gendir.sh</li>
 </ul>
-## 第一步 本地 gen_slurms/
+
+## 第一步 本地 gen_slurms
 `$ python gen.py` 生成所有参数组合脚本
+
 ## 第二步 上传 freno_slurms/ 至hpc的freno目录
+
 ## 第三步 hpc的freno目录
+
 ### 相关文件夹结构如下
 <ol>
 <li>7次实验的slurm脚本放入7个文件夹：slurms/slurms[0-6]</li>
