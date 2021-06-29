@@ -24,9 +24,9 @@
 
 ### 相关操作如下
 <ol>
-<li>mv "slurms/freno_*_*_*_0.slurm" slurms/slurms0</li>
-<li>生成exp_output/[db]：for d in retail ...; do mkdir exp_output/$d; done</li>
-<li>生成exp_output/[db]/perf; result：mkdir exp_output/*/perf; mkdir exp_output/*/result</li>
+<li>`mv "slurms/freno_*_*_*_0.slurm" slurms/slurms0`</li>
+<li>生成exp_output/[db]：`for d in retail ...; do mkdir exp_output/$d; done`</li>
+<li>生成exp_output/[db]/perf; result：`mkdir exp_output/*/perf; mkdir exp_output/*/result`</li>
 <li>生成exp_output/[db]/perf的子目录：在exp_output里跑`$ bash gendir.sh`</li>
 <li>自动sbatch: `$ bash batch.sh [0-6]`</li>
 </ol>
