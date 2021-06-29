@@ -24,7 +24,7 @@
 </ol>
 
 ### 相关操作如
-1. `mv "slurms/freno_*_*_*_0.slurm" slurms/slurms0`
+1. `mv "slurms/freno_*_*_*_[0-6].slurm" slurms/slurms[0-6]`
 2. 生成exp_output/[db]：`for d in retail ...; do mkdir exp_output/$d; done`
 3. 生成exp_output/[db]/perf; result：`mkdir exp_output/*/perf; mkdir exp_output/*/result`
 4. 生成exp_output/[db]/perf的子目录：在exp_output里跑`$ bash gendir.sh`
