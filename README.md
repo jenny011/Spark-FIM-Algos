@@ -1,13 +1,23 @@
 # Spark-FIM-Algos
 
-## PFP
-Done
-retail 31?
+## Algorithms
 
-## IncMiningPFP
+### PFP
 Done
 
-## DistZigZag
+### IncMiningPFP
+Done
+
+### DistZigZag
 task size issue
+hdfs
 
-## IncFreno
+### IncFreno
+
+## Utilities
+
+### splitdb
+
+### auto_sbatch
+
+### plot_data

@@ -1,5 +1,4 @@
 import os, math
-import numpy as np
 
 from fpGrowth import buildAndMine
 import threading

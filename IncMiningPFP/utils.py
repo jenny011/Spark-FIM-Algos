@@ -1,5 +1,4 @@
 import os, math
-import numpy as np
 import json
 
 from fpGrowth import buildAndMine

@@ -4,7 +4,6 @@ from pyspark.sql.types import *
 
 from operator import add
 import os, math, json
-import numpy as np
 
 from fpGrowth import buildAndMine, checkBuildAndMine
 from utils import *
@@ -19,7 +18,8 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     # dbSize = dbFile.count()
     # minsup = min_sup * dbSize
     # db = dbFile.map(lambda r: r.split(" ")).cache()
-    db = sc.parallelize(dbList).cache()
+    # !! cache
+    db = sc.parallelize(dbList)
 
     # step 1 & 2: sharding and parallel counting
     Flist = db.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -70,8 +70,8 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
     # incDBFile = sc.textFile(incDBPath)
     # incDBSize = incDBFile.count()
     # incDB = incDBFile.map(lambda r: r.split(" "))
-
-    newDB = sc.union([db, incDB]).cache()
+    # !! cache
+    newDB = sc.union([db, incDB])
     # minsup = min_sup * (dbSize + incDBSize)
 
     # step 1: Inc-Flist, merge Inc-Flist and Flist

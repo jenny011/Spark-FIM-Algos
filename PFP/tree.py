@@ -1,6 +1,5 @@
 '''tree'''
 import header as myHeader
-from time import time
 
 #-------------------------- Tree Base -------------------
 #-------------------------- Tree Base -------------------

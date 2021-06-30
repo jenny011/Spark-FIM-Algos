@@ -1,7 +1,6 @@
 from pyspark import RDD, SparkConf, SparkContext
 from operator import add
 import os, math, json
-import numpy as np
 
 from fpGrowth import buildAndMine
 from utils import *
@@ -16,11 +15,13 @@ def pfp(dbPath, min_sup, sc, partition, minsup, flistPath, oldDB=None):
     # prep: read database
     dbList = scanDB(dbPath)
     dbSize = len(dbList)
-    db = sc.parallelize(dbList).cache()
+    # !! cache
+    db = sc.parallelize(dbList)
 
     # INC: merge DB
     if oldDB:
-        db = sc.union([db, oldDB]).cache()
+        # !! cache
+        db = sc.union([db, oldDB])
 
     # step 1 & 2: sharding and parallel counting
     FlistRDD = db.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -37,16 +38,23 @@ def pfp(dbPath, min_sup, sc, partition, minsup, flistPath, oldDB=None):
     if oldDB:
         # read old Flist
         with open(flistPath, 'r') as f:
-            oldFlist = json.load(f)
+            oldFMap = json.load(f)
         # compare
-        if oldFlist is not None and sorted(Flist) == sorted(oldFlist):
+        skip = False
+        if oldFlist is not None:
+            skip = True
+            for k, v in FMap.items():
+                if k not in oldFMap or v != oldFMap[k]:
+                    skip = False
+                    break
+        if skip:
             return None, db
-            # output updated Flist
-            with open(flistPath, 'w') as f:
-                json.dump(Flist, f)
+        # output updated Flist
+        with open(flistPath, 'w') as f:
+            json.dump(FMap, f)
     else:
         with open(flistPath, 'w') as f:
-            json.dump(Flist, f)
+            json.dump(FMap, f)
 
     # step 3: Grouping items
     itemGidMap = {}

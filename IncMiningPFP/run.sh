@@ -6,7 +6,7 @@ if [ ! -d $OUTPUTDIR ]; then
 	mkdir $OUTPUTDIR
 fi
 
-for ALGO in "PFP"
+for ALGO in "IncMiningPFP"
 do
 	ALGODIR="$OUTPUTDIR/$ALGO"
 	if [ ! -d $ALGODIR ]; then
@@ -18,9 +18,9 @@ do
 		if [ ! -d $DBDIR ]; then
 			mkdir $DBDIR
 		fi
-		for MINSUP in 1
+		for MINSUP in 31 21 11 1
 		do
-			for INTERVAL in 20000
+			for INTERVAL in 80000 60000 40000 20000 0
 			do
 				for PARTITION in 4
 				do
@@ -32,6 +32,11 @@ do
 					do
 						# run exp
 						OUTFILE="$EXPDIR/$NUM.out"
+						for group in $( seq 0 1 $(( $PARTITION-1 )) )
+						do 
+							rm -f "./data/result"_"$group.json"
+							touch "./data/result"_"$group.json"
+						done
 
 						nohup /usr/local/hadoop/spark-2.1.0-bin-hadoop2.7/bin/spark-submit \
 						--py-files Archive.zip \

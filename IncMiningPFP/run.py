@@ -3,7 +3,6 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 import os, json, argparse
-import numpy as np
 
 from main import pfp, incPFP
 from utils import countDB
@@ -24,7 +23,7 @@ args = parser.parse_args()
 def main():
     # --------------------- shared MACROS ---------------------
     # --------------------- shared MACROS ---------------------
-    dbdir = "../incdatasets"
+    dbdir = "./incdatasets"
     database = args.database
     support = args.support
     partition = args.partition
@@ -93,9 +92,6 @@ def main():
     #     json.dump(list(result), f)
     ##### !!! comment it out to test SPEED !!! #####
     ##### !!! comment it out to test SPEED !!! #####
-
-    # NEW
-    sc.clearCache()
     sc.stop()
     return
 

@@ -3,7 +3,6 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 import os, json, argparse
-import numpy as np
 
 from main import pfp
 from utils import countDB
@@ -94,8 +93,6 @@ def main():
     ##### !!! comment it out to test SPEED !!! #####
     ##### !!! comment it out to test SPEED !!! #####
 
-    # NEW
-    sc.clearCache()
     sc.stop()
     return
 

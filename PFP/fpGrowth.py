@@ -1,7 +1,6 @@
 '''FP-Growth'''
 import header as myHeader
 import tree as myTree
-from time import time
 import sys
 
 #----------scan the db-----------
