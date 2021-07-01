@@ -5,10 +5,9 @@
 #SBATCH -n 17
 #SBATCH --time=1-01:10:00  # 1 day + 1 hour + 10 minutes
 #SBATCH --mem=128G
-#SBATCH --output=slurm/%j.out
 #SBATCH --array=51,41,31,21,11,1
-#SBATCH --p parallel
-#SBATCH --output=Job.out  
+#SBATCH -p parallel
+#SBATCH --output=exp/perf/dist_%a.out  
 #SBATCH --error=Job.err
 #SBATCH --constraint=g6248
 

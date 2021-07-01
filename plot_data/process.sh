@@ -2,22 +2,7 @@
 
 for ALGO in PFP
 do
-	if [ ! -d ./graphs ]; then
-		mkdir ./graphs
-	fi
-
-	if [ ! -d ./graphs/$ALGO ]; then
-		mkdir ./graphs/$ALGO
-	fi
-
-	for item in minsup scale inc
-	do
-		if [ ! -d ./graphs/$ALGO/$item ]; then
-			mkdir ./graphs/$ALGO/$item
-		fi
-	done
-
-	for DB in retail kosarak chainstore
+	for DB in retail
 	do
 		if [ ! -d ./exp_data/$ALGO/$DB ]; then
 			mkdir ./exp_data/$ALGO/$DB
@@ -27,7 +12,8 @@ do
 		# fi
 		# rm -r ./exp_result/$ALGO/$DB/*
 
-		python process_output.py -a $ALGO -d $DB -n 7
+		python process_spark.py -a $ALGO -d $DB -n 7
+		python process_hpc.py -a $ALGO -d $DB -n 7
 	done
 done
 

@@ -15,12 +15,13 @@ dataset="record"
 ALLDATADIR="$HOME/incdatasets"
 #datadir="$ALLDATADIR/$dataset"
 
-DISTHOME="$HOME/distributed"
+#!!!!! change this !!!!!
+DISTHOME="$HOME"
 DIR="$DISTHOME/$experiment"
 
 EXPDIR="$DIR/exp"
 #path-to-performance/retail
-performance="$EXPDIR/performance/$dataset"
+performance="$EXPDIR/perf/$dataset"
 memory="$EXPDIR/memory/$dataset"
 result="$EXPDIR/result/$dataset"
 tablesize="$EXPDIR/tablesize/$dataset"

@@ -6,10 +6,10 @@
 #SBATCH --time=1-1:10:00  # 1 day + 1 hour + 10 minutes
 #SBATCH --mem=128G
 #SBATCH --array=51,41,31,21,11,1
-#SBATCH --p parallel
-#SBATCH --output=Job.out  
+#SBATCH -p parallel
+#SBATCH --output=exp/perf/1_%a.out  
 #SBATCH --error=Job.err
-#SBATCH --g6248
+#SBATCH --constraint=g6248
 
 
 ####CHANGE THIS TO your path to config.sh
