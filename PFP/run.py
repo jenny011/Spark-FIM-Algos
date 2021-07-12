@@ -2,7 +2,7 @@ from pyspark import RDD, SparkConf, SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
-import os, json, argparse
+import os, json, argparse, math
 
 from main import pfp
 from utils import countDB
@@ -23,22 +23,16 @@ args = parser.parse_args()
 def main():
     # --------------- shared MACROS ----------------
     # --------------- shared MACROS ----------------
-    dbdir = "./incdatasets"
+    dbdir = "hdfs:///incdatasets"
     database = args.database
     support = args.support
     partition = args.partition
-    # interval = 0: no increment, mine the whole database
     interval = args.interval
-    # test_num = 1
 
-    # for t in range(test_num):
     # --------------- SPARK setup ----------------
     # --------------- SPARK setup ----------------
     conf = SparkConf().setAppName("PFP")
-    # set partition number
-    # conf.set("spark.default.parallelism", str(partition))
     sc = SparkContext.getOrCreate(conf=conf)
-    # sc.setLogLevel("INFO")
 
     spark = SparkSession(sc)
     schema = StructType([
@@ -55,43 +49,29 @@ def main():
     # --------------- exp MACROS ----------------
     min_sup = support/100
 
-    dbSize = countDB(dbdir, database, interval)
+    #dbSize = countDB(dbdir, database, interval)
+    dbFile = sc.textFile(os.path.join(dbdir, "interval_{0}_0/db_0.txt".format(database)))
+    dbSize = dbFile.count()
     minsup = min_sup * dbSize
 
-    # resultPath = f"./data/{database}_{support}_{interval}_{partition}/result.json"
-    # flistPath = f"./data/{database}_{support}_{interval}_{partition}/flist.json"
-    resultPath = "./data/result.json"
-    flistPath = "./data/flist.json"
+    if int(interval) == 0:
+        max_number = 1
+    else:
+        max_number = math.ceil(dbSize / int(interval))
 
     # --------------- RUN exp ----------------
+    db = None
     result = None
+    oldFMap = None
 
-    # --- base ---
-    inc_number = 0
-    dbPath = os.path.join(dbdir, "interval_{0}_{1}/db_{2}.txt".format(database, interval, inc_number))
-    res, db = pfp(dbPath, min_sup, sc, partition, minsup, flistPath)
-    result = res
-    #print(result)
-
-    # --- increment ---
-    inc_number += 1
-    incDBPath = os.path.join(dbdir, "interval_{0}_{1}/db_{2}.txt".format(database, interval, inc_number))
-    while os.path.isfile(incDBPath):
-        res, db = pfp(incDBPath, min_sup, sc, partition, minsup, flistPath, db)
+    for inc_number in range(max_number):
+        dbPath = os.path.join(dbdir, "interval_{0}_{1}/db_{2}.txt".format(database, interval, inc_number))
+        res, db, oldFMap = pfp(dbPath, min_sup, sc, partition, minsup, oldFMap, db)
         if res:
             result = res
-        #print(result)
-        inc_number += 1
-        incDBPath = os.path.join(dbdir, "interval_{0}_{1}/db_{2}.txt".format(database, interval, inc_number))
 
     # --------------- SAVE result ----------------
     print(result)
-    ##### !!! comment it out to test SPEED !!! #####
-    ##### !!! comment it out to test SPEED !!! #####
-    # with open(resultPath, 'w') as f:
-    #     json.dump(list(result), f)
-    ##### !!! comment it out to test SPEED !!! #####
-    ##### !!! comment it out to test SPEED !!! #####
 
     sc.stop()
     return

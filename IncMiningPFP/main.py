@@ -4,22 +4,20 @@ from pyspark.sql.types import *
 
 from operator import add
 import os, math, json
+import subprocess
 
 from fpGrowth import buildAndMine, checkBuildAndMine
 from utils import *
 import threading
 
-
-def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
+def pfp(dbPath, total_minsup, sc, partition, resultPath):
     # prep: read database
-    dbList = scanDB(dbPath)
-    dbSize = len(dbList)
-    # dbFile = sc.textFile(dbPath)
-    # dbSize = dbFile.count()
-    # minsup = min_sup * dbSize
-    # db = dbFile.map(lambda r: r.split(" ")).cache()
-    # !! cache
-    db = sc.parallelize(dbList)
+    # dbList = scanDB(dbPath)
+    # dbSize = len(dbList)
+    # db = sc.parallelize(dbList).cache()
+    dbFile = sc.textFile(dbPath)
+    dbSize = dbFile.count()
+    db = dbFile.map(lambda r: r.split(" ")).cache()
 
     # step 1 & 2: sharding and parallel counting
     Flist = db.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -30,7 +28,7 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
     FMap = {}
     for kv in Flist:
         FMap[kv[0]] = kv[1]
-    writeFMapToJSON(FMap, flistPath)
+    # writeFMapToJSON(FMap, flistPath)
     # filter freq items
     freqFMap = {}
     for k, v in FMap.items():
@@ -51,28 +49,30 @@ def pfp(dbPath, min_sup, total_minsup, sc, partition, resultPath, flistPath):
                 .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                 .groupByKey()\
                 .map(lambda kv: (kv[0], list(kv[1])))\
-                .map(lambda condDB: buildAndMine(condDB[0], condDB[1], total_minsup))\
+                .map(lambda condDB: (condDB[0], buildAndMine(condDB[0], condDB[1], total_minsup)))\
                 .collect()
 
+    for item in globalFIs:
+        resRDD = sc.parallelize(item[1])
+        resRDD.saveAsTextFile(resultPath + "_" + str(item[0]) + ".txt")
+
     # save result
-    for i in range(len(globalFIs)):
-        with open(resultPath + "_" + str(i) + ".json", 'w') as f:
-            json.dump(globalFIs[i], f)
+    # for i in range(len(globalFIs)):
+    #     with open(resultPath + "_" + str(i) + ".json", 'w') as f:
+    #         json.dump(globalFIs[i], f)
 
-    return db, itemGidMap, gidItemMap, dbSize
+    return db, itemGidMap, gidItemMap, dbSize, FMap
 
 
-def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPath, flistPath, itemGidMap, gidItemMap):
+def incPFP(db, total_minsup, sc, partition, incDBPath, dbSize, resultPath, FMap, itemGidMap, gidItemMap):
     # prep: read deltaD
-    incDBList = scanDB(incDBPath)
-    incDBSize = len(incDBList)
-    incDB = sc.parallelize(incDBList)
-    # incDBFile = sc.textFile(incDBPath)
-    # incDBSize = incDBFile.count()
-    # incDB = incDBFile.map(lambda r: r.split(" "))
-    # !! cache
-    newDB = sc.union([db, incDB])
-    # minsup = min_sup * (dbSize + incDBSize)
+    # incDBList = scanDB(incDBPath)
+    # incDBSize = len(incDBList)
+    # incDB = sc.parallelize(incDBList)
+    incDBFile = sc.textFile(incDBPath)
+    incDBSize = incDBFile.count()
+    incDB = incDBFile.map(lambda r: r.split(" ")).cache()
+    newDB = sc.union([db, incDB]).cache()
 
     # step 1: Inc-Flist, merge Inc-Flist and Flist
     incFlistKV = incDB.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -80,7 +80,7 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
                     .sortBy(lambda kv: kv[1], False)\
                     .collect()
 
-    FMap = readFlistFromJSON(flistPath)
+    # FMap = readFlistFromJSON(flistPath)
     incFMap = {}
     freqIncFMap = {}
     freqIncFlist = []
@@ -93,7 +93,7 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
         if newv >= total_minsup:
             freqIncFMap[k] = newv
             freqIncFlist.append(k)
-    writeFMapToJSON(FMap, flistPath)
+    # writeFMapToJSON(FMap, flistPath)
     incFlist = list(incFMap.keys())
 
     # step 2: shard new DB
@@ -102,29 +102,49 @@ def incPFP(db, min_sup, total_minsup, sc, partition, incDBPath, dbSize, resultPa
         itemGidMap[item] = gid
         gidItemMap[gid] = gidItemMap.get(gid, []) + [item]
 
-    globalFIs = newDB.map(lambda trx: sortByFlist(trx,freqIncFMap))\
+    condDBs = newDB.map(lambda trx: sortByFlist(trx,freqIncFMap))\
                     .flatMap(lambda trx: groupDependentTrx(trx, itemGidMap))\
                     .groupByKey()\
-                    .map(lambda kv: (kv[0], list(kv[1])))\
-                    .map(lambda condDB: checkBuildAndMine(freqIncFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup))\
+                    .map(lambda kv: (kv[0], list(kv[1]))).cache()
+
+    oldResults = {}
+    for item in condDBs.collect():
+        try:
+            oldResults[item[0]] = sc.textFile(resultPath + "_" + str(item[0]) + ".txt").collect()
+        except:
+            oldResults[item[0]] = []
+
+    globalFIs = condDBs\
+                    .map(lambda condDB: (condDB[0], checkBuildAndMine(oldResults[condDB[0]], freqIncFlist, gidItemMap[condDB[0]], condDB[0], condDB[1], total_minsup)))\
                     .collect()
 
+    for item in globalFIs:
+        if item[1] is not False:
+            try:
+                cmd = "hdfs dfs -rm -r {0}_{1}.txt".format(resultPath, str(item[0]))
+                ret = subprocess.check_output(cmd, shell=True)
+            except:
+                pass
+
+            resRDD = sc.parallelize(item[1])
+            resRDD.saveAsTextFile(resultPath + "_" + str(item[0]) + ".txt")
+
     # merge results
-    for i in range(len(globalFIs)):
-        if globalFIs[i] is not False:
-            with open(resultPath + "_" + str(i) + ".json", 'r') as f:
-                try:
-                    oldResults = json.load(f)
-                except:
-                    oldResults = []
+    # for i in range(len(globalFIs)):
+    #     if globalFIs[i] is not False:
+    #         with open(resultPath + "_" + str(i) + ".json", 'r') as f:
+    #             try:
+    #                 oldResults = json.load(f)
+    #             except:
+    #                 oldResults = []
+    #
+    #         mergedResults = []
+    #         for item in globalFIs[i]:
+    #             if item not in oldResults:
+    #                 mergedResults.append(item)
+    #         mergedResults.extend(oldResults)
+    #
+    #         with open(resultPath + "_" + str(i) + ".json", 'w') as f:
+    #             json.dump(mergedResults, f)
 
-            mergedResults = []
-            for item in globalFIs[i]:
-                if item not in oldResults:
-                    mergedResults.append(item)
-            mergedResults.extend(oldResults)
-
-            with open(resultPath + "_" + str(i) + ".json", 'w') as f:
-                json.dump(mergedResults, f)
-
-    return newDB, itemGidMap, gidItemMap, dbSize + incDBSize
+    return newDB, itemGidMap, gidItemMap, dbSize + incDBSize, FMap

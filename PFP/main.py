@@ -11,17 +11,19 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 
 
-def pfp(dbPath, min_sup, sc, partition, minsup, flistPath, oldDB=None):
+def pfp(dbPath, min_sup, sc, partition, minsup, oldFMap, oldDB=None):
     # prep: read database
-    dbList = scanDB(dbPath)
-    dbSize = len(dbList)
-    # !! cache
-    db = sc.parallelize(dbList)
+    dbFile = sc.textFile(dbPath)
+    dbSize = dbFile.count()
+    db = dbFile.map(lambda r: r.split(" ")).cache()
+
+    # dbList = scanDB(dbPath)
+    # dbSize = len(dbList)
+    # db = sc.parallelize(dbList).cache()
 
     # INC: merge DB
     if oldDB:
-        # !! cache
-        db = sc.union([db, oldDB])
+        db = sc.union([db, oldDB]).cache()
 
     # step 1 & 2: sharding and parallel counting
     FlistRDD = db.flatMap(lambda trx: [(k,1) for k in trx])\
@@ -35,26 +37,15 @@ def pfp(dbPath, min_sup, sc, partition, minsup, flistPath, oldDB=None):
     Flist = list(FMap.keys())
 
     # INC: if Flist not changed, return
-    if oldDB:
-        # read old Flist
-        with open(flistPath, 'r') as f:
-            oldFMap = json.load(f)
+    if oldDB and oldFMap and FMap:
         # compare
-        skip = False
-        if oldFlist is not None:
-            skip = True
-            for k, v in FMap.items():
-                if k not in oldFMap or v != oldFMap[k]:
-                    skip = False
-                    break
+        skip = True
+        for k, v in FMap.items():
+            if k not in oldFMap or v != oldFMap[k]:
+                skip = False
+                break
         if skip:
             return None, db
-        # output updated Flist
-        with open(flistPath, 'w') as f:
-            json.dump(FMap, f)
-    else:
-        with open(flistPath, 'w') as f:
-            json.dump(FMap, f)
 
     # step 3: Grouping items
     itemGidMap = {}
@@ -76,5 +67,4 @@ def pfp(dbPath, min_sup, sc, partition, minsup, flistPath, oldDB=None):
 
     # step 5: Aggregation - remove duplicates
     globalFIs = set(localFIs.collect())
-    # print("result>>>", globalFIs)
-    return globalFIs, db
+    return globalFIs, db, FMap

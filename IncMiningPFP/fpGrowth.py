@@ -89,13 +89,20 @@ def mineAll(tree, minsup, basePtn='', incFlist=[]):
 
 
 def buildAndMine(gid, db, minsup, basePtn=''):
-    dbItems, newDB = getDBItems(db)
-    if newDB:
-            fpTree = buildFPTree(newDB, dbItems, minsup)
-    else:
-            fpTree = buildFPTree(db, dbItems, minsup)
-    results = mineAll(fpTree, minsup, basePtn)
-    return results
+	dbItems, newDB = getDBItems(db)
+	if newDB:
+		fpTree = buildFPTree(newDB, dbItems, minsup)
+	else:
+		fpTree = buildFPTree(db, dbItems, minsup)
+	results = mineAll(fpTree, minsup, basePtn)
+
+	#resRDD = sc.parallelize(results)
+	#resRDD.saveAsTextFile(resultPath + "_" + str(gid) + ".txt")
+	#
+	# with open(resultPath + "_" + str(gid) + ".txt", 'w') as outputf:
+	#     outputf.write("\n".join(results))
+
+	return results
 
 
 #-----------mine trx-----------
@@ -145,7 +152,7 @@ def buildAndMineIncDB(incFlist, incDB, minsup, basePtn=''):
     return results
 
 
-def checkBuildAndMine(incFlist, gItems, gid, db, minsup, basePtn=''):
+def checkBuildAndMine(oldResults, incFlist, gItems, gid, db, minsup, basePtn=''):
 	# check if the group is affected
 	dontSkip = False
 	for item in gItems:
@@ -156,5 +163,18 @@ def checkBuildAndMine(incFlist, gItems, gid, db, minsup, basePtn=''):
 	if dontSkip:
 		incDB = constructIncDB(incFlist, db, minsup)
 		results = buildAndMineIncDB(incFlist, incDB, minsup, basePtn)
-		return results
+
+		mergedResults = []
+		for item in results:
+			if item not in oldResults:
+				mergedResults.append(item)
+		mergedResults.extend(oldResults)
+
+		# resRDD = sc.parallelize(mergedResults)
+		# resRDD.saveAsTextFile(resultPath + "_" + str(gid) + ".txt")
+
+		# with open(resultPath + "_" + str(gid) + ".txt", 'w') as outputf:
+		# 	outputf.write("\n".join(mergedResults))
+
+		return mergedResults
 	return False
